@@ -1,0 +1,241 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Monitoring functions
+
+# Global variables
+Globals:
+  Function:
+    Handler: lambda_function.lambda_handler
+    Runtime: python3.8
+    Tracing: Active
+
+Parameters:
+  # Kinesis
+  KinesisStreamName:
+    Type: String
+    Default: ''
+    Description: Kinesis のストリーム名 
+  # API Gateway
+  ApiName:
+    Type: String
+    Default: ''
+    Description: API Gateway の API名  
+  ApiStageName:
+    Type: String
+    Default: ''
+    Description: API Gateway の ステージ名  
+  ApiCountThreshold:
+    Type: Number
+    Default: 0
+    MinValue: 0
+    Description: API Gateway の 分間カウント数上限
+  ApiPostResourcePath:
+    Type: String
+    Default: ''
+    Description: API Gateway の POSTメソッド の リソースパス 
+  ApiGetResourcePath:
+    Type: String
+    Default: ''
+    Description: API Gateway の GETメソッド の リソースパス 
+  # DynamoDB
+  DynamoDBEnabled:
+    Type: String
+    Default: Disabled
+    AllowedValues:
+     - Enabled
+     - Disabled
+    Description: DynamoDBリソースが存在するかどうか
+  DynamoDBTableName:
+    Type: String
+    Default: ''
+    Description: DynamoDB の テーブル名    
+  # Lambda
+  LambdaFunctionName:
+    Type: String
+    Default: ''
+    Description: Lambda の 関数名 
+  LambdaTimeout:
+    Type: Number
+    Default: 0
+    MinValue: 0
+    Description: Lambda の タイムアウト警告値 (msec)
+  SlackHookUrl:
+    Type: String
+    Default: ''
+    Description: Slack の Hook URL 
+  SlackChannelName:
+    Type: String
+    Default: ''
+    Description: Slack の チャンネル名 
+
+Conditions:
+  SlackEnabled: !And [ !Not [ !Equals [ !Ref SlackHookUrl, ''] ], !Not [ !Equals [ !Ref SlackChannelName, ''] ] ]
+
+Resources:
+  # IAM
+  IAMRoleForLambda:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Description: A role required for Lambda to access X-Ray, KMS and CloudWatch Logs.
+      ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
+      Policies:
+        - PolicyName: !Sub '${AWS::StackName}-AWSLambdaBasicExecutionRole-${AWS::Region}'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'kms:Decrypt'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'logs:PutLogEvents'
+                Resource: '*'
+      RoleName: !Sub '${AWS::StackName}-ExecuteLambda-${AWS::Region}'
+  # Nested Stack
+  # Kinesis
+  Kinesis:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        # Kinesis
+        KinesisStreamName: !Ref KinesisStreamName
+        # ARN
+        SNSAlertArn: !Ref EnqueteVotesSNSAlert
+      NotificationARNs: 
+        - !Ref EnqueteVotesSNSAlert
+      TemplateURL: ./kinesis.yaml
+  # API Gateway
+  APIGateway:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        # Kinesis
+        ApiName: !Ref ApiName
+        ApiCount: !Ref ApiCountThreshold
+      NotificationARNs: 
+        - !Ref EnqueteVotesSNSAlert
+      TemplateURL: ./apigateway.yaml
+  APIGatewayPost:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        # Kinesis
+        ApiName: !Ref ApiName
+        ApiResourcePath: !Ref ApiGetResourcePath
+        ApiStageName: !Ref ApiStageName
+        # ARN
+        SNSAlertArn: !Ref EnqueteVotesSNSAlert
+      NotificationARNs: 
+        - !Ref EnqueteVotesSNSAlert
+      TemplateURL: ./apigateway-post.yaml
+  APIGatewayGet:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        # Kinesis
+        ApiName: !Ref ApiName
+        ApiResourcePath: !Ref ApiPostResourcePath
+        ApiStageName: !Ref ApiStageName
+        # ARN
+        SNSAlertArn: !Ref EnqueteVotesSNSAlert
+      NotificationARNs: 
+        - !Ref EnqueteVotesSNSAlert
+      TemplateURL: ./apigateway-get.yaml
+  # DynamoDB
+  DynamoDB:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        # DynamoDB
+        DynamoDBEnabled: !Ref DynamoDBEnabled
+        # ARN
+        SNSAlertArn: !Ref EnqueteVotesSNSAlert
+      NotificationARNs: 
+        - !Ref EnqueteVotesSNSAlert
+      TemplateURL: ./dynamodb.yaml
+  DynamoDBThrottle:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        # DynamoDB
+        TableName: !Ref DynamoDBTableName
+        # ARN
+        SNSAlertArn: !Ref EnqueteVotesSNSAlert
+      NotificationARNs: 
+        - !Ref EnqueteVotesSNSAlert
+      TemplateURL: ./dynamodb-throttle.yaml
+  # Lambda
+  Lambda:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        # Lambda
+        FunctionName: !Ref LambdaFunctionName
+        Timeout: !Ref LambdaTimeout
+        # ARN
+        SNSAlertArn: !Ref EnqueteVotesSNSAlert
+      NotificationARNs: 
+        - !Ref EnqueteVotesSNSAlert
+      TemplateURL: ./lambda.yaml
+  # Lambda
+  LambdaSendSlackMessage:
+    Type: 'AWS::Serverless::Function'
+    Condition: SlackEnabled
+    Properties:
+      CodeUri: sendSlackMessage/
+      Description: CloudWatchアラームの内容をSlackに送信します
+      Environment:
+        Variables:
+          SLACK_HOOK_URL: !Ref SlackHookUrl
+          SLACK_CHANNEL_NAME: !Ref SlackChannelName
+      Events:
+        SNSEvent:
+          Properties:
+              Topic: !Ref EnqueteVotesSNSAlert
+          Type: SNS
+      FunctionName: sendSlackMessage
+      MemorySize: 128
+      Role: !GetAtt IAMRoleForLambda.Arn
+      Timeout: 30
+  LambdaSendSlackMessageLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub /aws/lambda/${LambdaSendSlackMessage}
+      RetentionInDays: 60
+  # SNS
+  EnqueteVotesSNSAlert:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      DisplayName: !Sub 'System Notifications from ${AWS::StackName}'
+      TopicName: !Sub '${AWS::StackName}-system-notifications'
+  AlarmSNSNumberOfNotificationsFailed:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      ActionsEnabled: true
+      AlarmDescription: !Sub '*SNS* (${AWS::StackName}) で *通知エラー* が発生しています。'
+      AlarmName: !Sub 'Warning-SNS-${AWS::StackName}-NumberOfNotificationsFailed-Occured'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: TopicName
+          Value: !GetAtt EnqueteVotesSNSAlert.TopicName
+      EvaluationPeriods: 1
+      MetricName: NumberOfNotificationsFailed
+      Namespace: AWS/SNS
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching

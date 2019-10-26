@@ -1,0 +1,668 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Serverless Architecture for Three-layer model
+
+Parameters:
+  # CROS
+  #
+  # Access-Control-Allow-Origin に設定するドメイン名
+  AccessControlAllowOrigin:
+    Type: String
+    Default: '*'
+    Description: Domain Name attached with Access-Control-Allow-Origin
+  # Access-Control-Expose-Headers に設定するヘッダ名
+  AccessControlExposeHeaders:
+    Type: String
+    Default: Date
+    Description: Response Header attached with Access-Control-Expose-Headers
+  # Kinesis Data Streams
+  #
+  # シャードに保存されているデータレコードのアクセス可能な時間数
+  KinesisStreamRetentionPeriodHours:
+    Type: Number
+    Default: 24
+    MinValue: 24
+    MaxValue: 168
+    Description: Retention Period Hours in Kinesis Data Streams
+  # シャード数
+  KinesisStreamShardCount:
+    Type: Number
+    Default: 1
+    MinValue: 1
+    Description: Shard Count in Kinesis Data Streams
+  # バッチサイズ
+  LambdaGetRecordsBatchSize:
+    Type: Number
+    Default: 1000
+    MinValue: 1
+    MaxValue: 1000
+    Description: Batch Size in Lambda
+  # リソースタグ
+  TagKey:
+    Type: String
+    Default: createdby
+  TagValue:
+    Type: String
+    Default: aws:cloudformation:stack
+
+Resources:
+  # API Gateway から CloudWatch Logs へのアクセスを許可する IAM Role
+  IAMRoleForAPIGatewayAccessToCloudWatchLogs:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Description: API Gateway to access to CloudWatch Logs.
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+      RoleName: !Sub 'ThreeTierApp-CFn-APIGateway-CloudWatch-${AWS::Region}'
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+  # API Gateway の Lamba 実行を許可する IAM Role
+  IAMRoleForAPIGatewayInvokeFunctionLambda:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Description: API Gateway to invoke Lambda.
+      Policies:
+        - PolicyName: !Sub 'ThreeTierApp-CFn-APIGatewayInvokeFunctionLambda-${AWS::Region}'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                Resource: '*'
+      RoleName: !Sub 'ThreeTierApp-CFn-APIGateway-Lambda-${AWS::Region}'
+  # API Gateway から Kinesis へのアクセスを許可する IAM Role
+  IAMRoleForAPIGatewayAccessToKinesis:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Description: API Gateway to access Kinesis.
+      Policies:
+        - PolicyName: !Sub 'ThreeTierApp-CFn-APIGatewayAccessToKinesis-${AWS::Region}'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'kinesis:PutRecord'
+                  - 'kinesis:PutRecords'
+                Resource: !GetAtt Kinesis.Arn
+      RoleName: !Sub 'ThreeTierApp-CFn-APIGateway-Kinesis-${AWS::Region}'
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+  # Lambda から　X-Ray, DynamoDB, Kinesis, CloudWatch Logs へのアクセスを許可する IAM Role
+  IAMRoleForLambda:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Description: Lambda to access X-Ray, DynamoDB, Kinesis and CloudWatch Logs.
+      # Managed Policy
+      ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
+          - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+          - arn:aws:iam::aws:policy/AmazonKinesisReadOnlyAccess 
+      Policies:
+        - PolicyName: !Sub 'ThreeTierApp-CFn-AWSLambdaBasicExecutionRole-${AWS::Region}'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'kinesis:PutRecord'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'logs:PutLogEvents'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'cloudwatch:PutMetricData'
+                Resource: '*'
+      RoleName: !Sub 'ThreeTierApp-CFn-ExecuteLambda-${AWS::Region}'
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+  # API Gateway
+  ApiAccount:
+    Type: 'AWS::ApiGateway::Account'
+    Properties:
+      CloudWatchRoleArn: !GetAtt IAMRoleForAPIGatewayAccessToCloudWatchLogs.Arn
+  Api:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Description: Endpoint of Three-layer model.
+      EndpointConfiguration:
+        Types:
+          - EDGE
+      FailOnWarnings: true
+      Name: !Ref 'AWS::StackName'
+  ApiUser:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref Api
+      ParentId: !GetAtt 
+        - Api
+        - RootResourceId
+      PathPart: 'user'
+  ApiUserByUserId:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref Api
+      ParentId: !Ref ApiUser
+      PathPart: '{user_id}'
+  ApiPost:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        Credentials: !GetAtt IAMRoleForAPIGatewayAccessToKinesis.Arn
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+          - ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: !Sub '''${AccessControlAllowOrigin}'''
+              method.response.header.Access-Control-Expose-Headers: !Sub '''${AccessControlExposeHeaders}'''
+            SelectionPattern: '200'
+            StatusCode: '200'
+          - ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: !Sub '''${AccessControlAllowOrigin}'''
+              method.response.header.Access-Control-Expose-Headers: !Sub '''${AccessControlExposeHeaders}'''
+            StatusCode: '500'
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        RequestTemplates:
+          application/json: !Join 
+            - ''
+            - - |-
+                #set($data = $input.json('$'))
+                {
+                    "StreamName": "
+              - !Ref 'AWS::StackName'
+              - |-
+                ",
+                    "PartitionKey": "$input.path('$.user_id')",
+                    "Data": "$util.base64Encode($data)"
+                }
+        Type: AWS
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord'
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Expose-Headers: true
+          StatusCode: '200'
+        - ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Expose-Headers: true
+          StatusCode: '500'
+      OperationName: Post
+      RequestModels:
+        application/json: !Ref ApiModelPostBody
+      RequestValidatorId: !Ref ApiRequestValidatorBodyCheckingOnly
+      ResourceId: !Ref ApiUser
+      RestApiId: !Ref Api
+  ApiUserOptions:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+          - ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: !Sub '''${AccessControlAllowOrigin}'''
+              method.response.header.Access-Control-Expose-Headers: !Sub '''${AccessControlExposeHeaders}'''
+              method.response.header.Access-Control-Allow-Methods: '''POST,GET,OPTIONS'''
+              method.response.header.Access-Control-Allow-Headers: >-
+                'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
+            StatusCode: '200'
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Expose-Headers: true
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+          StatusCode: '200'
+      ResourceId: !Ref ApiUser
+      RestApiId: !Ref Api
+  ApiUserGet:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Credentials: !GetAtt IAMRoleForAPIGatewayInvokeFunctionLambda.Arn
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Join 
+          - ''
+          - - !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/
+            - !GetAtt LambdaGetData.Arn
+            - /invocations
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Expose-Headers: true
+          StatusCode: '200'
+      OperationName: Get
+      RequestParameters:
+        method.request.path.user_id: true
+      RequestValidatorId: !Ref ApiRequestValidatorParameterCheckingOnly
+      ResourceId: !Ref ApiUserByUserId
+      RestApiId: !Ref Api
+  ApiDeploymentProd:
+    DependsOn:
+      - ApiUserGet
+      - ApiPost
+    Type: 'AWS::ApiGateway::Deployment'
+    Properties:
+      Description: Deployment for prod
+      RestApiId: !Ref Api
+      StageDescription:
+        AccessLogSetting:
+          DestinationArn: !GetAtt CloudWatchLogsGroupForApiGateway.Arn
+          Format: >-
+            { "requestId":"$context.requestId", "ip":
+            "$context.identity.sourceIp", "caller":"$context.identity.caller",
+            "user":"$context.identity.user","requestTime":"$context.requestTime",
+            "httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath",
+            "status":"$context.status","protocol":"$context.protocol",
+            "responseLength":"$context.responseLength" }
+        MethodSettings:
+          - DataTraceEnabled: true
+            HttpMethod: '*'
+            LoggingLevel: INFO
+            MetricsEnabled: true
+            ResourcePath: /*
+        TracingEnabled: true
+        Variables:
+          alias: Prod
+      StageName: Prod
+  ApiModelPostBody:
+    Type: 'AWS::ApiGateway::Model'
+    Properties:
+      ContentType: application/json
+      Description: POSY Body
+      Name: Post
+      RestApiId: !Ref Api
+      Schema:
+        definitions: {}
+        $schema: 'http://json-schema.org/draft-07/schema#'
+        type: object
+        title: Root Schema
+        required:
+           - user_id
+           - group_id
+        properties:
+          user_id:
+            type: string
+            title: User Id
+            pattern: ^(.*)$
+            minLength: 1
+            maxLength: 1024
+          group_id:
+            type: string
+            title: Group Id
+            pattern: ^(.*)$
+            minLength: 1
+            maxLength: 1024
+  ApiRequestValidatorParameterCheckingOnly:
+    Type: 'AWS::ApiGateway::RequestValidator'
+    Properties:
+      Name: ParameterCheckingOnly
+      RestApiId: !Ref Api
+      ValidateRequestBody: false
+      ValidateRequestParameters: true
+  ApiRequestValidatorBodyCheckingOnly:
+    Type: 'AWS::ApiGateway::RequestValidator'
+    Properties:
+      Name: BodyCheckingOnly
+      RestApiId: !Ref Api
+      ValidateRequestBody: true
+      ValidateRequestParameters: false
+  # Kinesis Data Streams
+  Kinesis:
+    Type: 'AWS::Kinesis::Stream'
+    Properties:
+      Name: !Ref 'AWS::StackName'
+      RetentionPeriodHours: !Ref KinesisStreamRetentionPeriodHours
+      # サーバサイド暗号化
+      StreamEncryption:
+        EncryptionType: KMS
+        KeyId: alias/aws/kinesis
+      ShardCount: !Ref KinesisStreamShardCount
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+  # DynamoDB
+  DynamoDBData:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: group_id
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+        - AttributeName: group_id
+          KeyType: RANGE
+      # サーバサイド暗号化
+      SSESpecification:
+        SSEEnabled: true
+      TableName: ThreeTierApp-CFn-data
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+  # Lambda
+  LambdaPutData:
+    Type: AWS::Lambda::Function
+    Properties: 
+      Code: 
+        ZipFile: |
+          import base64
+          import json
+          import boto3
+          import os
+          import copy
+
+          # DynamoDB オブジェクト
+          dynamodb = boto3.resource('dynamodb')
+          # DynamoDB Table オブジェクト
+          # 環境変数の読み取り
+          table = dynamodb.Table(os.environ['DATA_DB_NAME'])
+
+          user_id_key_name = 'user_id'
+          group_id_key_name = 'group_id'
+          attributes_key_name = 'attributes'
+
+          def lambda_handler(event, context):
+
+              """
+              Kinesis からデータを取得して、DynamoDBに書き込みます。
+
+              Parameters
+              ----------
+              event : event
+                  イベントデータ
+              context : LambdaContext
+                  コンテクスト
+              """
+
+              records = decode_records(event)
+              for record in records:
+                  user_id = record['data'][user_id_key_name]
+                  group_id = record['data'][group_id_key_name]
+                  attributes = copy.deepcopy(record['data'])
+                  del attributes[user_id_key_name]
+                  del attributes[group_id_key_name]
+                  update_data(user_id, group_id, attributes)
+
+          def update_data(user_id, group_id, attributes):
+
+              """
+              UpdateItem メソッドを用いて DynamoDB を更新します。
+
+              Parameters
+              ----------
+              user_id : string
+                  ユーザID
+              group_id : string
+                  グループID
+              attributes : map
+                  属性データ
+
+              Returns
+              -------
+              succeed : bool
+                  更新に成功すると true を返す
+              """
+
+              try:
+                  # Sort an array of voting 
+                  response = table.update_item(
+                      Key={
+                          user_id_key_name:user_id,
+                          group_id_key_name:group_id
+                      },
+                      UpdateExpression="SET #attr = :attr",
+                      ExpressionAttributeNames={
+                          '#attr': attributes_key_name
+                      },
+                      ExpressionAttributeValues={
+                          ':attr': attributes
+                      }
+                  )
+                  return True
+              except Exception:
+                  return False
+
+          def decode_records(event):
+
+              """
+              インベントレコードをBase64デコードします。
+
+              Parameters
+              ----------
+              event : event
+                  イベントデータ
+
+              Returns
+              -------
+              decoded_records : string
+                  デコード済みのイベントレコード
+              """
+
+              records = []
+              
+              for record in event['Records']:
+                  # Base64デコード
+                  payload = base64.b64decode(record['kinesis']['data']).decode('utf-8')
+                  records.append({"data": json.loads(payload), "approximateArrivalTimestamp": str(int(record['kinesis']['approximateArrivalTimestamp']))})
+              return records
+      Description: データをKinesisから取得しDynamoDBに書き込みます
+      Environment:
+        Variables:
+          DATA_DB_NAME: !Ref DynamoDBData
+      FunctionName: putData-ThreeTierApp-CFn
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt IAMRoleForLambda.Arn
+      Runtime: python3.7
+      Timeout: 30
+      TracingConfig: 
+        Mode: Active
+  # LambdaPutData のトリガに Kinesis を指定
+  LambdaEventSourceMappingPutData:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties: 
+      BatchSize: !Ref LambdaGetRecordsBatchSize
+      Enabled: true
+      EventSourceArn: !GetAtt Kinesis.Arn
+      FunctionName: !GetAtt LambdaPutData.Arn
+      StartingPosition: TRIM_HORIZON
+  LambdaGetData:
+    Type: AWS::Lambda::Function
+    Properties: 
+      Code: 
+        ZipFile: |
+          import json
+          import boto3
+          import os
+          from boto3.dynamodb.conditions import Key, Attr
+
+          # DynamoDB オブジェクト
+          dynamodb = boto3.resource('dynamodb')
+          # DynamoDB Table オブジェクト
+          # 環境変数の読み取り
+          table = dynamodb.Table(os.environ['DATA_DB_NAME'])
+          
+          user_id_key_name = 'user_id'
+
+          def lambda_handler(event, context):
+
+              """
+              リクエストに応じたJSONファイルをAPI Gatewayに返します。
+
+              Parameters
+              ----------
+              event : event
+                  イベントデータ
+              context : LambdaContext
+                  コンテクスト
+              """
+
+              user_id = event['pathParameters'][user_id_key_name]
+              try:
+                  # JSON値を取得
+                  body = get_data(user_id)
+                  
+                  # CROS対応
+                  # Decimal型をfloat型に変換
+                  return {
+                      'statusCode': 200,
+                      'headers': { 
+                                  "Access-Control-Allow-Origin" : os.environ['ACCESS_CONTROL_ALLOW_ORIGIN'],
+                                  "Access-Control-Expose-Headers": os.environ['ACCESS_CONTROL_EXPOSE_HEADERS']
+                              },
+                      'body':  json.dumps(body, default=decimal_default_proc)
+                  }
+              except Exception as e:
+                  return create_error_response(500, str(e))
+
+          def get_data(user_id):
+
+              """
+              DynamoDB からデータを取得します。
+
+              Parameters
+              ----------
+              user_id : string
+                  ユーザID
+
+              Returns
+              -------
+              json : string
+                  取得したJSONデータ
+              """
+
+              response = table.query(
+                  KeyConditionExpression=Key(user_id_key_name).eq(user_id)
+              )
+              if 'Items' not in response:
+                  return None
+              else:
+                  return response['Items']
+
+          def create_error_response(status_code, message):
+
+              """
+              エラーレスポンスを生成します。
+
+              Parameters
+              ----------
+              status_code : int
+                  ステータスコード
+              message : string
+                  メッセージ
+
+              Returns
+              -------
+              json : string
+                  生成したJSONデータ
+              """
+
+              return {
+                  'statusCode': status_code,
+                  'headers': { 
+                      "Access-Control-Allow-Origin" : os.environ['ACCESS_CONTROL_ALLOW_ORIGIN'],
+                      "Access-Control-Expose-Headers": os.environ['ACCESS_CONTROL_EXPOSE_HEADERS']
+                  },
+                  'body': '{"message": "' + message + '"}'
+              }
+
+          def decimal_default_proc(obj):
+
+              """
+              Decimal 型を float 型に変換します。
+
+              Parameters
+              ----------
+              obj : Decimal
+                  入力値
+
+              Returns
+              -------
+              obj : float
+                  型変換後の値
+              """
+
+              from decimal import Decimal
+              if isinstance(obj, Decimal):
+                  return float(obj)
+              raise TypeError
+      Description: データをDynamoDBから取得しAPI Gatewayに返却します
+      Environment:
+        Variables:
+          DATA_DB_NAME: !Ref DynamoDBData
+          ACCESS_CONTROL_ALLOW_ORIGIN: !Ref AccessControlAllowOrigin
+          ACCESS_CONTROL_EXPOSE_HEADERS: !Ref AccessControlExposeHeaders
+      FunctionName: getData-ThreeTierApp-CFn
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt IAMRoleForLambda.Arn
+      Runtime: python3.7
+      Timeout: 30
+      TracingConfig: 
+        Mode: Active
+  # CloudWatch Logs
+  CloudWatchLogsGroupForApiGateway:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: /aws/apigateway/ThreeTierApp-CFn
+      RetentionInDays: 365

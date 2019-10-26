@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Monitoring functions for API Gateway
+
+Parameters:
+  # API Gateway
+  ApiName:
+    Type: String
+    Description: API名  
+  ApiCount:
+    Type: Number
+    MinValue: 0
+    Description: 分間カウント数上限 
+
+Conditions:
+  Enabled: !Not [ !Equals [ !Ref ApiName, ''] ]
+
+Resources:
+  AlarmApiCount:
+    Type: 'AWS::CloudWatch::Alarm'
+    Condition: Enabled
+    Properties:
+      ActionsEnabled: true
+      AlarmDescription: !Sub '*API Gateway* (${ApiName}) で *分間リクエスト数がシステムが処理可能な上限値に近づいています* 。'
+      AlarmName: !Sub 'Notice-ApiGateway-${ApiName}-Count'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: ApiName
+          Value: !Ref ApiName
+      EvaluationPeriods: 1
+      MetricName: Count
+      Namespace: AWS/ApiGateway
+      Period: 60
+      Statistic: Sum
+      Threshold: !Ref ApiCount
+      TreatMissingData: notBreaching
