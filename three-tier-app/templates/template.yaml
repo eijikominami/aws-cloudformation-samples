@@ -513,7 +513,7 @@ Resources:
       Handler: index.lambda_handler
       MemorySize: 128
       Role: !GetAtt IAMRoleForLambda.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 30
       TracingConfig: 
         Mode: Active
@@ -656,7 +656,7 @@ Resources:
       Handler: index.lambda_handler
       MemorySize: 128
       Role: !GetAtt IAMRoleForLambda.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 30
       TracingConfig: 
         Mode: Active
@@ -666,3 +666,8 @@ Resources:
     Properties:
       LogGroupName: /aws/apigateway/ThreeTierApp-CFn
       RetentionInDays: 365
+
+Outputs:
+  APIGatewayEndpointURL:
+    Description: API Gateway Endpoint URL
+    Value: !Sub '${Api}.execute-api.${AWS::Region}.amazonaws.com'

@@ -11,7 +11,7 @@ Metadata:
     SpdxLicenseId: MIT
     Labels: ['apigateway', 'kinesis', 'dynamodb', 'lambda']
     HomePageUrl: https://github.com/eijikominami/
-    SemanticVersion: 1.0.7
+    SemanticVersion: 1.0.9
     SourceCodeUrl: https://github.com/eijikominami/aws-cloudformation-samples/tree/master/three-tier-app/sam-app/
 
 # 共通設定
@@ -21,7 +21,10 @@ Globals:
       Variables:
         DATA_DB_NAME: !Ref DynamoDBData
     Handler: lambda_function.lambda_handler
-    Runtime: python3.7
+    Layers:
+      # NOTE: AWS Lambda Extensions for Lambda Insights
+      - !Sub arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2
+    Runtime: python3.8
     Tracing: Active
     
 Parameters:
@@ -259,7 +262,7 @@ Resources:
                 passthroughBehavior: when_no_templates
                 httpMethod: POST
                 requestTemplates:
-                  application/json: !Sub "#set($data = $input.json('$'))\n{\n    \"StreamName\"\
+                  application/json: "#set($data = $input.json('$'))\n{\n    \"StreamName\"\
                     : \"ThreeTierApp-SAM\",\n    \"PartitionKey\": \"$input.path('$.user_id')\"\
                     ,\n    \"Data\": \"$util.base64Encode($data)\"\n}"
                 type: aws
@@ -449,3 +452,8 @@ Resources:
     Properties:
       LogGroupName: /aws/apigateway/ThreeTierApp-SAM
       RetentionInDays: 365
+
+Outputs:
+  APIGatewayEndpointURL:
+    Description: API Gateway Endpoint URL
+    Value: !Sub '${Api}.execute-api.${AWS::Region}.amazonaws.com'

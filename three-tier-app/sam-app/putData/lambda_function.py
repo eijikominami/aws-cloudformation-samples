@@ -3,9 +3,9 @@ import json
 import boto3
 import os
 import copy
-# AWS X-Ray SDK for Python
-from aws_xray_sdk.core import xray_recorder
-from aws_xray_sdk.core import patch
+# Lambda Powertools
+from aws_lambda_powertools import Logger
+from aws_lambda_powertools import Tracer
 
 # DynamoDB オブジェクト
 dynamodb = boto3.resource('dynamodb')
@@ -17,7 +17,12 @@ user_id_key_name = 'user_id'
 group_id_key_name = 'group_id'
 attributes_key_name = 'attributes'
 
-@xray_recorder.capture('lambda_handler')
+# Lambda Powertools
+logger = Logger()
+tracer = Tracer()
+
+@logger.inject_lambda_context(log_event=True)
+@tracer.capture_lambda_handler
 def lambda_handler(event, context):
 
     """
@@ -40,7 +45,6 @@ def lambda_handler(event, context):
         del attributes[group_id_key_name]
         update_data(user_id, group_id, attributes)
 
-@xray_recorder.capture('update_data')
 def update_data(user_id, group_id, attributes):
 
     """
@@ -76,11 +80,12 @@ def update_data(user_id, group_id, attributes):
                 ':attr': attributes
             }
         )
+        logger.structure_logs(append=True, dynamodb_response=response)
+        logger.debug("Published a dynamodb query.")
         return True
     except Exception:
         return False
 
-@xray_recorder.capture('decode_records')
 def decode_records(event):
 
     """
