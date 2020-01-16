@@ -449,3 +449,8 @@ Resources:
     Properties:
       LogGroupName: /aws/apigateway/ThreeTierApp-SAM
       RetentionInDays: 365
+
+Outputs:
+  APIGatewayEndpointURL:
+    Description: API Gateway Endpoint URL
+    Value: !Sub '${Api}.execute-api.${AWS::Region}.amazonaws.com'

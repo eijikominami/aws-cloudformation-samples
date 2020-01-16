@@ -440,7 +440,7 @@ Resources:
   LambdaPutData:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://eijikominami/aws-cloudformation-samples/three-tier-app/0812086a63027229b17bdcfb01bd3be6
+      CodeUri: s3://eijikominami/aws-cloudformation-samples/three-tier-app/b7cb8b761ecb9f1cd065f7a541e5fc1a
       Description: "\u30C7\u30FC\u30BF\u3092Kinesis\u304B\u3089\u53D6\u5F97\u3057\
         DynamoDB\u306B\u66F8\u304D\u8FBC\u307F\u307E\u3059"
       Events:
@@ -465,7 +465,7 @@ Resources:
   LambdaGetData:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://eijikominami/aws-cloudformation-samples/three-tier-app/9738a6d5fe8546b17fd905e64a668408
+      CodeUri: s3://eijikominami/aws-cloudformation-samples/three-tier-app/7bb3b2a7c445ae58d98a4a5f684bfe45
       Description: "\u30C7\u30FC\u30BF\u3092DynamoDB\u304B\u3089\u53D6\u5F97\u3057\
         API Gateway\u306B\u8FD4\u5374\u3057\u307E\u3059"
       Environment:
@@ -486,3 +486,8 @@ Resources:
     Properties:
       LogGroupName: /aws/apigateway/ThreeTierApp-SAM
       RetentionInDays: 365
+Outputs:
+  APIGatewayEndpointURL:
+    Description: API Gateway Endpoint URL
+    Value:
+      Fn::Sub: ${Api}.execute-api.${AWS::Region}.amazonaws.com
