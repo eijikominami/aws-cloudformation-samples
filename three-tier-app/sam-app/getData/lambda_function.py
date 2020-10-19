@@ -2,9 +2,9 @@ import json
 import boto3
 import os
 from boto3.dynamodb.conditions import Key, Attr
-# AWS X-Ray SDK for Python
-from aws_xray_sdk.core import xray_recorder
-from aws_xray_sdk.core import patch
+# Lambda Powertools
+from aws_lambda_powertools import Logger
+from aws_lambda_powertools import Tracer
 
 # DynamoDB オブジェクト
 dynamodb = boto3.resource('dynamodb')
@@ -14,7 +14,12 @@ table = dynamodb.Table(os.environ['DATA_DB_NAME'])
 
 user_id_key_name = 'user_id'
 
-@xray_recorder.capture('lambda_handler')
+# Lambda Powertools
+logger = Logger()
+tracer = Tracer()
+
+@logger.inject_lambda_context(log_event=True)
+@tracer.capture_lambda_handler
 def lambda_handler(event, context):
 
     """
@@ -46,7 +51,6 @@ def lambda_handler(event, context):
     except Exception as e:
         return create_error_response(500, str(e))
 
-@xray_recorder.capture('get_data')
 def get_data(user_id):
 
     """
@@ -71,7 +75,6 @@ def get_data(user_id):
     else:
         return response['Items']
 
-@xray_recorder.capture('create_error_response')
 def create_error_response(status_code, message):
 
     """
@@ -99,7 +102,6 @@ def create_error_response(status_code, message):
         'body': '{"message": "' + message + '"}'
     }
 
-@xray_recorder.capture('decimal_default_proc')
 def decimal_default_proc(obj):
 
     """
