@@ -80,6 +80,8 @@ def update_data(user_id, group_id, attributes):
                 ':attr': attributes
             }
         )
+        logger.structure_logs(append=True, dynamodb_response=response)
+        logger.debug("Published a dynamodb query.")
         return True
     except Exception:
         return False

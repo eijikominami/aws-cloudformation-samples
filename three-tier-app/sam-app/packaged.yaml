@@ -1,211 +1,215 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Serverless Architecture for Three-layer model
-
-# アプリケーション情報
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: three-tier-app-sample
     Description: A sample template of a three tier application for sam-app.
     Author: Eiji KOMINAMI
     SpdxLicenseId: MIT
-    Labels: ['apigateway', 'kinesis', 'dynamodb', 'lambda']
+    Labels:
+    - apigateway
+    - kinesis
+    - dynamodb
+    - lambda
     HomePageUrl: https://github.com/eijikominami/
     SemanticVersion: 1.0.9
     SourceCodeUrl: https://github.com/eijikominami/aws-cloudformation-samples/tree/master/three-tier-app/sam-app/
-
-# 共通設定
 Globals:
   Function:
     Environment:
       Variables:
-        DATA_DB_NAME: !Ref DynamoDBData
+        DATA_DB_NAME:
+          Ref: DynamoDBData
     Handler: lambda_function.lambda_handler
     Layers:
-      # NOTE: AWS Lambda Extensions for Lambda Insights
-      - !Sub arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2
+    - Fn::Sub: arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2
     Runtime: python3.8
     Tracing: Active
-    
 Parameters:
-  # CROS
-  #
-  # Access-Control-Allow-Origin に設定するドメイン名
   AccessControlAllowOrigin:
     Type: String
     Default: '*'
     Description: Domain Name attached with Access-Control-Allow-Origin
-  # Access-Control-Expose-Headers に設定するヘッダ名
   AccessControlExposeHeaders:
     Type: String
     Default: Date
     Description: Response Header attached with Access-Control-Expose-Headers
-  # Kinesis Data Streams
-  #
-  # シャードに保存されているデータレコードのアクセス可能な時間数
   KinesisStreamRetentionPeriodHours:
     Type: Number
     Default: 24
     MinValue: 24
     MaxValue: 168
     Description: Retention Period Hours in Kinesis Data Streams
-  # シャード数
   KinesisStreamShardCount:
     Type: Number
     Default: 1
     MinValue: 1
     Description: Shard Count in Kinesis Data Streams
-  # バッチサイズ
   LambdaGetRecordsBatchSize:
     Type: Number
     Default: 1000
     MinValue: 1
     MaxValue: 1000
     Description: Batch Size in Lambda
-  # リソースタグ
   TagKey:
     Type: String
     Default: createdby
   TagValue:
     Type: String
     Default: aws:cloudformation:stack
-
 Resources:
-  # API Gateway から CloudWatch Logs へのアクセスを許可する IAM Role
   IAMRoleForAPIGatewayAccessToCloudWatchLogs:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
-          - Effect: Allow
-            Principal:
-              Service: apigateway.amazonaws.com
-            Action: 'sts:AssumeRole'
+        - Effect: Allow
+          Principal:
+            Service: apigateway.amazonaws.com
+          Action: sts:AssumeRole
       Description: API Gateway to access to CloudWatch Logs.
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
-      RoleName: !Sub 'ThreeTierApp-SAM-APIGateway-CloudWatch-${AWS::Region}'
+      - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+      RoleName:
+        Fn::Sub: ThreeTierApp-SAM-APIGateway-CloudWatch-${AWS::Region}
       Tags:
-        - Key: !Ref TagKey
-          Value: !Ref TagValue
-  # API Gateway の Lamba 実行を許可する IAM Role
+      - Key:
+          Ref: TagKey
+        Value:
+          Ref: TagValue
   IAMRoleForAPIGatewayInvokeFunctionLambda:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
-          - Effect: Allow
-            Principal:
-              Service: apigateway.amazonaws.com
-            Action: 'sts:AssumeRole'
+        - Effect: Allow
+          Principal:
+            Service: apigateway.amazonaws.com
+          Action: sts:AssumeRole
       Description: API Gateway to invoke Lambda.
       Policies:
-        - PolicyName: !Sub 'ThreeTierApp-SAM-APIGatewayInvokeFunctionLambda-${AWS::Region}'
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'lambda:InvokeFunction'
-                Resource: '*'
-      RoleName: !Sub 'ThreeTierApp-SAM-APIGateway-Lambda-${AWS::Region}'
+      - PolicyName:
+          Fn::Sub: ThreeTierApp-SAM-APIGatewayInvokeFunctionLambda-${AWS::Region}
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - lambda:InvokeFunction
+            Resource: '*'
+      RoleName:
+        Fn::Sub: ThreeTierApp-SAM-APIGateway-Lambda-${AWS::Region}
       Tags:
-        - Key: !Ref TagKey
-          Value: !Ref TagValue
-  # API Gateway から Kinesis へのアクセスを許可する IAM Role
+      - Key:
+          Ref: TagKey
+        Value:
+          Ref: TagValue
   IAMRoleForAPIGatewayAccessToKinesis:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
-          - Effect: Allow
-            Principal:
-              Service: apigateway.amazonaws.com
-            Action: 'sts:AssumeRole'
+        - Effect: Allow
+          Principal:
+            Service: apigateway.amazonaws.com
+          Action: sts:AssumeRole
       Description: API Gateway to access Kinesis.
       Policies:
-        - PolicyName: !Sub 'ThreeTierApp-SAM-APIGatewayAccessToKinesis-${AWS::Region}'
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'kinesis:PutRecord'
-                  - 'kinesis:PutRecords'
-                Resource: !GetAtt Kinesis.Arn
-      RoleName: !Sub 'ThreeTierApp-SAM-APIGateway-Kinesis-${AWS::Region}'
+      - PolicyName:
+          Fn::Sub: ThreeTierApp-SAM-APIGatewayAccessToKinesis-${AWS::Region}
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - kinesis:PutRecord
+            - kinesis:PutRecords
+            Resource:
+              Fn::GetAtt:
+              - Kinesis
+              - Arn
+      RoleName:
+        Fn::Sub: ThreeTierApp-SAM-APIGateway-Kinesis-${AWS::Region}
       Tags:
-        - Key: !Ref TagKey
-          Value: !Ref TagValue
-  # Lambda から　X-Ray, DynamoDB, Kinesis, CloudWatch Logs へのアクセスを許可する IAM Role
+      - Key:
+          Ref: TagKey
+        Value:
+          Ref: TagValue
   IAMRoleForLambda:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: 'sts:AssumeRole'
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
       Description: Lambda to access X-Ray, DynamoDB, Kinesis and CloudWatch Logs.
-      # Managed Policy
       ManagedPolicyArns:
-          - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
-          - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
-          - arn:aws:iam::aws:policy/AmazonKinesisReadOnlyAccess 
+      - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
+      - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+      - arn:aws:iam::aws:policy/AmazonKinesisReadOnlyAccess
       Policies:
-        - PolicyName: !Sub 'ThreeTierApp-SAM-AWSLambdaBasicExecutionRole-${AWS::Region}'
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'kinesis:PutRecord'
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - 'logs:CreateLogGroup'
-                  - 'logs:CreateLogStream'
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - 'logs:PutLogEvents'
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - 'cloudwatch:PutMetricData'
-                Resource: '*'
-      RoleName: !Sub 'ThreeTierApp-SAM-ExecuteLambda-${AWS::Region}'
+      - PolicyName:
+          Fn::Sub: ThreeTierApp-SAM-AWSLambdaBasicExecutionRole-${AWS::Region}
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - kinesis:PutRecord
+            Resource: '*'
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            Resource: '*'
+          - Effect: Allow
+            Action:
+            - logs:PutLogEvents
+            Resource: '*'
+          - Effect: Allow
+            Action:
+            - cloudwatch:PutMetricData
+            Resource: '*'
+      RoleName:
+        Fn::Sub: ThreeTierApp-SAM-ExecuteLambda-${AWS::Region}
       Tags:
-        - Key: !Ref TagKey
-          Value: !Ref TagValue
-  # API Gateway
+      - Key:
+          Ref: TagKey
+        Value:
+          Ref: TagValue
   ApiAccount:
-    Type: 'AWS::ApiGateway::Account'
+    Type: AWS::ApiGateway::Account
     Properties:
-      CloudWatchRoleArn: !GetAtt IAMRoleForAPIGatewayAccessToCloudWatchLogs.Arn
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+        - IAMRoleForAPIGatewayAccessToCloudWatchLogs
+        - Arn
   Api:
     Type: AWS::Serverless::Api
     Properties:
       AccessLogSetting:
-        DestinationArn: !GetAtt CloudWatchLogsGroupForApiGateway.Arn
-        Format: >-
-          { "requestId":"$context.requestId", "ip":
-          "$context.identity.sourceIp", "caller":"$context.identity.caller",
-          "user":"$context.identity.user","requestTime":"$context.requestTime",
+        DestinationArn:
+          Fn::GetAtt:
+          - CloudWatchLogsGroupForApiGateway
+          - Arn
+        Format: '{ "requestId":"$context.requestId", "ip": "$context.identity.sourceIp",
+          "caller":"$context.identity.caller", "user":"$context.identity.user","requestTime":"$context.requestTime",
           "httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath",
-          "status":"$context.status","protocol":"$context.protocol",
-          "responseLength":"$context.responseLength" }
+          "status":"$context.status","protocol":"$context.protocol", "responseLength":"$context.responseLength"
+          }'
       CacheClusterEnabled: false
-      # Open API による API Gateway の定義 
       DefinitionBody:
-        openapi: "3.0.1"
+        openapi: 3.0.1
         info:
-          title: !Ref AWS::StackName
+          title:
+            Ref: AWS::StackName
           description: Endpoint of Three-layer model.
         paths:
           /user:
@@ -215,7 +219,7 @@ Resources:
                 content:
                   application/json:
                     schema:
-                      $ref: "#/components/schemas/Post"
+                      $ref: '#/components/schemas/Post'
                 required: true
               responses:
                 '500':
@@ -230,7 +234,7 @@ Resources:
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/Empty"
+                        $ref: '#/components/schemas/Empty'
                 '200':
                   description: 200 response
                   headers:
@@ -243,22 +247,30 @@ Resources:
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/Empty"
+                        $ref: '#/components/schemas/Empty'
               x-amazon-apigateway-request-validator: BodyCheckingOnly
               x-amazon-apigateway-integration:
-                credentials: !GetAtt IAMRoleForAPIGatewayAccessToKinesis.Arn
-                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord'
+                credentials:
+                  Fn::GetAtt:
+                  - IAMRoleForAPIGatewayAccessToKinesis
+                  - Arn
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord
                 responses:
                   '200':
-                    statusCode: "200"
+                    statusCode: '200'
                     responseParameters:
-                      method.response.header.Access-Control-Expose-Headers: !Sub '''${AccessControlExposeHeaders}'''
-                      method.response.header.Access-Control-Allow-Origin: !Sub '''${AccessControlAllowOrigin}'''
+                      method.response.header.Access-Control-Expose-Headers:
+                        Fn::Sub: '''${AccessControlExposeHeaders}'''
+                      method.response.header.Access-Control-Allow-Origin:
+                        Fn::Sub: '''${AccessControlAllowOrigin}'''
                   default:
-                    statusCode: "500"
+                    statusCode: '500'
                     responseParameters:
-                      method.response.header.Access-Control-Expose-Headers: !Sub '''${AccessControlExposeHeaders}'''
-                      method.response.header.Access-Control-Allow-Origin: !Sub '''${AccessControlAllowOrigin}'''
+                      method.response.header.Access-Control-Expose-Headers:
+                        Fn::Sub: '''${AccessControlExposeHeaders}'''
+                      method.response.header.Access-Control-Allow-Origin:
+                        Fn::Sub: '''${AccessControlAllowOrigin}'''
                 passthroughBehavior: when_no_templates
                 httpMethod: POST
                 requestTemplates:
@@ -286,29 +298,31 @@ Resources:
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/Empty"
+                        $ref: '#/components/schemas/Empty'
               x-amazon-apigateway-integration:
                 responses:
                   default:
-                    statusCode: "200"
+                    statusCode: '200'
                     responseParameters:
-                      method.response.header.Access-Control-Expose-Headers: !Sub '''${AccessControlExposeHeaders}'''
-                      method.response.header.Access-Control-Allow-Methods: "'POST,GET,OPTIONS'"
-                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-                      method.response.header.Access-Control-Allow-Origin: !Sub '''${AccessControlAllowOrigin}'''
+                      method.response.header.Access-Control-Expose-Headers:
+                        Fn::Sub: '''${AccessControlExposeHeaders}'''
+                      method.response.header.Access-Control-Allow-Methods: '''POST,GET,OPTIONS'''
+                      method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+                      method.response.header.Access-Control-Allow-Origin:
+                        Fn::Sub: '''${AccessControlAllowOrigin}'''
                 passthroughBehavior: when_no_match
                 requestTemplates:
-                  application/json: "{\"statusCode\": 200}"
+                  application/json: '{"statusCode": 200}'
                 type: mock
           /user/{user_id}:
             get:
               operationId: Get
               parameters:
-                - name: user_id
-                  in: path
-                  required: true
-                  schema:
-                    type: string
+              - name: user_id
+                in: path
+                required: true
+                schema:
+                  type: string
               responses:
                 '200':
                   description: 200 response
@@ -322,17 +336,23 @@ Resources:
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/Empty"
+                        $ref: '#/components/schemas/Empty'
               x-amazon-apigateway-request-validator: ParameterCheckingOnly
               x-amazon-apigateway-integration:
-                credentials: !GetAtt IAMRoleForAPIGatewayInvokeFunctionLambda.Arn
-                uri: !Join
+                credentials:
+                  Fn::GetAtt:
+                  - IAMRoleForAPIGatewayInvokeFunctionLambda
+                  - Arn
+                uri:
+                  Fn::Join:
                   - ''
                   - - 'arn:aws:apigateway:'
-                    - !Ref AWS::Region
-                    - ':lambda:path/2015-03-31/functions/'
-                    - !GetAtt LambdaGetData.Arn 
-                    - '/invocations'
+                    - Ref: AWS::Region
+                    - :lambda:path/2015-03-31/functions/
+                    - Fn::GetAtt:
+                      - LambdaGetData
+                      - Arn
+                    - /invocations
                 passthroughBehavior: when_no_match
                 httpMethod: POST
                 type: aws_proxy
@@ -344,8 +364,8 @@ Resources:
             Post:
               title: Root Schema
               required:
-                - group_id
-                - user_id
+              - group_id
+              - user_id
               type: object
               properties:
                 user_id:
@@ -369,91 +389,106 @@ Resources:
             validateRequestBody: false
       EndpointConfiguration: EDGE
       MethodSettings:
-        - DataTraceEnabled: true
-          HttpMethod: '*'
-          LoggingLevel: INFO
-          MetricsEnabled: true
-          ResourcePath: /*
+      - DataTraceEnabled: true
+        HttpMethod: '*'
+        LoggingLevel: INFO
+        MetricsEnabled: true
+        ResourcePath: /*
       OpenApiVersion: 3.0.1
       StageName: Prod
       TracingEnabled: true
       Variables:
         alias: Prod
-  # Kinesis Data Streams
   Kinesis:
-    Type: 'AWS::Kinesis::Stream'
+    Type: AWS::Kinesis::Stream
     Properties:
-      Name: !Ref 'AWS::StackName'
-      RetentionPeriodHours: !Ref KinesisStreamRetentionPeriodHours
-      # サーバサイド暗号化
+      Name:
+        Ref: AWS::StackName
+      RetentionPeriodHours:
+        Ref: KinesisStreamRetentionPeriodHours
       StreamEncryption:
         EncryptionType: KMS
         KeyId: alias/aws/kinesis
-      ShardCount: !Ref KinesisStreamShardCount
+      ShardCount:
+        Ref: KinesisStreamShardCount
       Tags:
-        - Key: !Ref TagKey
-          Value: !Ref TagValue
-  # DynamoDB
+      - Key:
+          Ref: TagKey
+        Value:
+          Ref: TagValue
   DynamoDBData:
-    Type: 'AWS::DynamoDB::Table'
+    Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-        - AttributeName: user_id
-          AttributeType: S
-        - AttributeName: group_id
-          AttributeType: S
+      - AttributeName: user_id
+        AttributeType: S
+      - AttributeName: group_id
+        AttributeType: S
       BillingMode: PAY_PER_REQUEST
       KeySchema:
-        - AttributeName: user_id
-          KeyType: HASH
-        - AttributeName: group_id
-          KeyType: RANGE
-      # サーバサイド暗号化
+      - AttributeName: user_id
+        KeyType: HASH
+      - AttributeName: group_id
+        KeyType: RANGE
       SSESpecification:
         SSEEnabled: true
       TableName: ThreeTierApp-SAM-data
       Tags:
-        - Key: !Ref TagKey
-          Value: !Ref TagValue
-  # Lambda
+      - Key:
+          Ref: TagKey
+        Value:
+          Ref: TagValue
   LambdaPutData:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: putData/
-      Description: データをKinesisから取得しDynamoDBに書き込みます
+      CodeUri: s3://eijikominami/aws-cloudformation-samples/three-tier-app/4a419b5a675cc1719ab8ec2d7ea3ebc9
+      Description: "\u30C7\u30FC\u30BF\u3092Kinesis\u304B\u3089\u53D6\u5F97\u3057\
+        DynamoDB\u306B\u66F8\u304D\u8FBC\u307F\u307E\u3059"
       Events:
         KinesisEvent:
           Properties:
-            BatchSize: !Ref LambdaGetRecordsBatchSize
+            BatchSize:
+              Ref: LambdaGetRecordsBatchSize
             Enabled: true
             StartingPosition: TRIM_HORIZON
-            Stream: !GetAtt Kinesis.Arn
+            Stream:
+              Fn::GetAtt:
+              - Kinesis
+              - Arn
           Type: Kinesis
       FunctionName: putData-ThreeTierApp-SAM
       MemorySize: 128
-      Role: !GetAtt IAMRoleForLambda.Arn
+      Role:
+        Fn::GetAtt:
+        - IAMRoleForLambda
+        - Arn
       Timeout: 30
   LambdaGetData:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: getData/
-      Description: データをDynamoDBから取得しAPI Gatewayに返却します
+      CodeUri: s3://eijikominami/aws-cloudformation-samples/three-tier-app/69785d8c2e8d0d676906f40e5dcf27fd
+      Description: "\u30C7\u30FC\u30BF\u3092DynamoDB\u304B\u3089\u53D6\u5F97\u3057\
+        API Gateway\u306B\u8FD4\u5374\u3057\u307E\u3059"
       Environment:
         Variables:
-          ACCESS_CONTROL_ALLOW_ORIGIN: !Ref AccessControlAllowOrigin
-          ACCESS_CONTROL_EXPOSE_HEADERS: !Ref AccessControlExposeHeaders
+          ACCESS_CONTROL_ALLOW_ORIGIN:
+            Ref: AccessControlAllowOrigin
+          ACCESS_CONTROL_EXPOSE_HEADERS:
+            Ref: AccessControlExposeHeaders
       FunctionName: getData-ThreeTierApp-SAM
       MemorySize: 128
-      Role: !GetAtt IAMRoleForLambda.Arn
+      Role:
+        Fn::GetAtt:
+        - IAMRoleForLambda
+        - Arn
       Timeout: 30
-  # CloudWatch Logs
   CloudWatchLogsGroupForApiGateway:
-    Type: 'AWS::Logs::LogGroup'
+    Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: /aws/apigateway/ThreeTierApp-SAM
       RetentionInDays: 365
-
 Outputs:
   APIGatewayEndpointURL:
     Description: API Gateway Endpoint URL
-    Value: !Sub '${Api}.execute-api.${AWS::Region}.amazonaws.com'
+    Value:
+      Fn::Sub: ${Api}.execute-api.${AWS::Region}.amazonaws.com
