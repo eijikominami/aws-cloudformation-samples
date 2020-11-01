@@ -13,7 +13,7 @@ This is a sample template about ``AWS Media Services on AWS``.
 
 Click the following button to deploy the project.
 
-[![cloudformation-launch-stack](../images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/new?stackName=ElementalSample&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/elemental/template.yaml)
+[![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/new?stackName=ElementalSample&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/elemental/template.yaml)
 
 ## Packaging and deployment
 
@@ -27,4 +27,4 @@ aws cloudformation deploy --template-file template.yaml --stack-name ElementalSa
 
 The following sections describe the individual components of the architecture.
 
-![](../images/architecture.png)
+![](images/architecture.png)
