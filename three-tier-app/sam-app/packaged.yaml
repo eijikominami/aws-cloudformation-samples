@@ -57,7 +57,7 @@ Parameters:
     Default: createdby
   TagValue:
     Type: String
-    Default: aws:cloudformation:stack
+    Default: aws-cloudformation-samples 
 Resources:
   IAMRoleForAPIGatewayAccessToCloudWatchLogs:
     Type: AWS::IAM::Role
