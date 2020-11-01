@@ -5,7 +5,7 @@
 ```bash
 .
 ├── README.md                   <-- この導入ガイド
-├── README_EN.md                <-- この導入ガイド（英語版）
+├── README_EN.md                <-- 導入ガイド（英語版）
 └── template.yaml               <-- CloudFormationテンプレートファイル
 ```
 
