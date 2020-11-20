@@ -42,7 +42,7 @@ Parameters:
     Default: createdby
   TagValue:
     Type: String
-    Default: aws:cloudformation:stack
+    Default: aws-cloudformation-samples 
 
 Resources:
   # API Gateway から CloudWatch Logs へのアクセスを許可する IAM Role
