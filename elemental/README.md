@@ -1,3 +1,5 @@
+[**English**](README_EN.md) / 日本語
+
 # CloudFormation Template - Elemental
 
 これは、**AWSメディアサービス** に関するサンプルテンプレートです。
@@ -13,7 +15,7 @@
 
 以下のボタンをクリックして **デプロイを開始** してください。
 
-[![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/new?stackName=ElementalSample&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/elemental/template.yaml)
+[![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/quickcreate?stackName=ElementalSample&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/elemental/template.yaml)
 
 ## デプロイ
 

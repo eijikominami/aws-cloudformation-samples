@@ -176,7 +176,7 @@ Resources:
   MediaLiveChannel:
     Type: AWS::MediaLive::Channel
     Properties: 
-      ChannelClass: STANDARD
+      ChannelClass: !Ref ChannelClass
       Destinations: 
         - Id: MediaPackageDestinationId
           MediaPackageSettings: 
