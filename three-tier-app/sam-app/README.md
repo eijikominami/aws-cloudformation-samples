@@ -1,70 +1,72 @@
+English / [**日本語**](README_JP.md)
+
 # sam-app
 
-これは、`AWS SAM` 向けの **3層アプリケーション** のサンプルテンプレートです。
+This is a sample template of a **three tier application** for `sam-app`.
 
 ```bash
 .
-├── README.md                   <-- この導入ガイド
-├── README_EN.md                <-- この導入ガイド（英語版）
-├── getData                     <-- Lambda用ディレクトリ
-│   ├── lambda_function.py      <-- メイン関数
-│   └── requirements.txt        <-- ライブラリの依存関係
-├── putData                     <-- Lambda用ディレクトリ
-│   ├── lambda_function.py      <-- メイン関数
-│   └── requirements.txt        <-- ライブラリの依存関係
-└── template.yaml               <-- SAMテンプレート
+├── README_JP.md                <-- Instructions file (Japanese)
+├── README.md                   <-- This instructions file
+├── getData                     <-- Source code for a lambda function
+│   ├── lambda_function.py      <-- Lambda function code
+│   └── requirements.txt        <-- Lambda function code
+├── putData                     <-- Source code for a lambda function
+│   ├── lambda_function.py      <-- Lambda function code
+│   └── requirements.txt        <-- Lambda function code
+└── template.yaml               <-- SAM Template
 ```
 
-## クイックスタート
+## Quick Start
 
-以下のURLの **Deploy** ボタンをクリックして **デプロイを開始** してください。
+Refer to the following link and click the **Deploy** button.
 
 + [three-tier-app-sample
 ](https://serverlessrepo.aws.amazon.com/applications/arn:aws:serverlessrepo:us-east-1:172664222583:applications~three-tier-app-sample)
 
-## デプロイ
+## Packaging and deployment
 
-まず、Zip化されたLambda関数をアップロード可能な `S3バケット` を用意します。もし、S3バケットが存在しない場合は、以下のコマンドを実行してください。
+Firstly, we need a `S3 bucket` where we can upload our Lambda functions packaged as ZIP before we deploy anything - If you don't have a S3 bucket to store code artifacts then this is a good time to create one:
 
 ```bash
 aws s3 mb s3://BUCKET_NAME
 ```
 
-次に、Lambdaをビルドし、アーティファクトを生成するために、以下のコマンドを実行します。
+Next, run the following command to build Lambda source codes and generate deployment artifacts:
 
 ```bash
 sam build
 ```
 
-次に、LambdaをS3バケットに置くために、以下のコマンドを実行します。
+Next, run the following command to package our Lambda function to S3:
 
 ```bash
 sam package --output-template-file packaged.yaml --s3-bucket BUCKET_NAME
 ```
 
-以下のコマンドを実行すると、CloudFormationスタックが生成され、SAMリソースがデプロイされます。
+Next, the following command will create a Cloudformation Stack and deploy your SAM resources.
 
 ```bash
 aws cloudformation deploy --template-file packaged.yaml --stack-name ThreeTierApp-SAM --s3-bucket BUCKET_NAME --capabilities CAPABILITY_NAMED_IAM
 ```
 
-## アーキテクチャ
+## Architecture
 
-このテンプレートが作成するAWSリソースのアーキテクチャ図は、以下の通りです。
+The following sections describe the individual components of the architecture.
 
 ![](../images/architecture.png)
 
-## APIリファレンス
+## API Rerefence
 
-この API エンドポイントは、 `User` メソッドのみを有しています。
+The endpoint only has `User` method. 
 
 ### POST /user
 
-`user_id`　と関連するデータを登録します。
+Register `user_id` and related data.
 
-#### パラメータ
+#### Parameters
 
-`user_id` と `grouo_id` は必須です。また、任意のキーバリュー値追加することができます。
+`user_id` and `grouo_id` are required. Any key-value data can be added in the body.
 
 ```json
 {
@@ -74,24 +76,24 @@ aws cloudformation deploy --template-file packaged.yaml --stack-name ThreeTierAp
 }
 ```
 
-#### レスポンス
+#### Response Messages
 
-| レスポンスコード | 内容 |
+| Response Code | Details |
 | --- | --- |
-| 200 | 登録完了 |
-| 400 | 不正な入力データ |
-| 500 | 内部サーバエラー |
+| 200 | Registered. |
+| 400 | Invalid request body. |
+| 500 | Internal server error. |
 
 ### GET /user/{user_id}
 
-ユーザデータを取得します。
+Get user information.
 
-#### レスポンス
+#### Response Messages
 
-| レスポンスコード | 内容 |
+| Response Code | Details |
 | --- | --- |
-| 200 | OK |
-| 500 | 内部サーバエラー |
+| 200 | OK. |
+| 500 | Internal server error. |
 
 ```json
 {

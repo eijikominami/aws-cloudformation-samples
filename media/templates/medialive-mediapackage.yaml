@@ -1,0 +1,335 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWSCloudFormationSamples/media/medialive-mediapackage creates an environment for live streaming.
+
+Metadata: 
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label: 
+          default: 'Live Source Configuration'
+        Parameters: 
+          - StreamKey
+      - Label: 
+          default: 'VOD Source Configuration'
+        Parameters: 
+          - LiveToVod
+          - VodSourceBucket 
+      - Label: 
+          default: 'MediaLive Configuration'
+        Parameters: 
+          - AudioBitrate 
+          - AutoInputFailover
+          - ChannelClass
+          - FramerateDenominator
+          - FramerateNumerator
+          - GopNumBFrames
+          - GopSize
+          - H264Profile
+          - H264Level
+          - Height
+          - VideoBitrate
+          - Width
+          - WhitelistRules
+      - Label: 
+          default: 'MediaPackage Configuration'
+        Parameters: 
+          - MediaPackageOutputType
+          - StartoverWindowSeconds
+          - SegmentDurationSeconds
+      - Label: 
+          default: 'RTMP output Configuration'
+        Parameters: 
+          - RtmpUrl1
+          - RtmpStreamKey1
+          - RtmpUrl2
+          - RtmpStreamKey2
+      - Label: 
+          default: 'Tag Configuration'
+        Parameters:
+          - Environment
+          - TagKey
+          - TagValue
+
+Parameters:
+  AudioBitrate:
+    Type: Number
+    Default: 96000
+    Description: Average audio bitrate in bits/second [required]
+  AutoInputFailover:
+    Type: String
+    AllowedValues:
+      - ENABLED
+      - DISABLED  
+    Default: ENABLED
+    Description: Enable or disable automatic input failover [required]
+  ChannelClass:
+    Type: String
+    AllowedValues:
+      - STANDARD
+      - SINGLE_PIPELINE  
+    Default: STANDARD
+    Description: Select the class of channel you intend to attach this input to [required] 
+  FramerateDenominator:
+    Type: Number
+    Default: 1001
+    Description: Framerate denominator [required]
+  FramerateNumerator:
+    Type: Number
+    Default: 30000
+    Description: Framerate numerator [required]  
+  GopNumBFrames:
+    Type: Number
+    Default: 3
+    Description: Number of B-frames between reference frames [required]
+  GopSize:
+    Type: Number
+    Default: 60
+    Description: GOP size (keyframe interval) in units of either frames or seconds per gopSizeUnits [required]
+  H264Profile:
+    Type: String
+    AllowedValues:
+      - BASELINE
+      - HIGH
+      - HIGH_10BIT
+      - HIGH_422
+      - HIGH_422_10BIT
+      - MAIN
+    Default: HIGH
+    Description: H.264 Profile [required]
+  H264Level:
+    Type: String
+    AllowedValues:
+      - H264_LEVEL_1
+      - H264_LEVEL_1_1
+      - H264_LEVEL_1_2
+      - H264_LEVEL_1_3
+      - H264_LEVEL_2
+      - H264_LEVEL_2_1
+      - H264_LEVEL_2_2
+      - H264_LEVEL_3
+      - H264_LEVEL_3_1
+      - H264_LEVEL_3_2
+      - H264_LEVEL_4
+      - H264_LEVEL_4_1
+      - H264_LEVEL_4_2
+      - H264_LEVEL_5
+      - H264_LEVEL_5_1
+      - H264_LEVEL_5_2
+      - H264_LEVEL_AUTO
+    Default: H264_LEVEL_4_1
+    Description: H.264 Level [required]
+  Height:
+    Type: Number
+    Default: 540
+    Description: Output video height, in pixels [required]
+  LiveToVod:
+    Type: String
+    AllowedValues:
+      - REC_ON_MEDIALIVE
+      - REC_ON_MEDIAPACKAGE
+      - PLAY_ON_MEDIALIVE
+      - PLAY_ON_MEDIAPACKAGE
+      - NONE 
+    Default: NONE
+    Description: Mediapackage OutputType [required]    
+  MediaPackageOutputType:
+    Type: String
+    AllowedValues:
+      - APPLE_HLS
+      - ISO_DASH
+      - ALL  
+    Default: APPLE_HLS
+    Description: Mediapackage OutputType [required]   
+  RtmpUrl1:
+    Type: String
+    Default: ''
+    Description: The rtmp url a stream sends to.
+  RtmpStreamKey1:
+    Type: String
+    Default: ''
+    Description: The rtmp stream name a stream sends to.
+  RtmpUrl2:
+    Type: String
+    Default: ''
+    Description: The rtmp url a stream sends to.
+  RtmpStreamKey2:
+    Type: String
+    Default: ''
+    Description: The rtmp stream name a stream sends to. 
+  StartoverWindowSeconds:
+    Type: Number
+    Default: 0
+    Description: Maximum duration seconds of content to retain for startover playback. [required]
+    MinValue: 0
+  SegmentDurationSeconds:
+    Type: String
+    Default: 3
+    Description: Duration (in seconds) of each fragment [required]
+  StreamKey:
+    Type: String
+    Default: stream
+    Description: A unique name for the location the RTMP stream is being pushed to [required]
+  VideoBitrate:
+    Type: Number
+    Default: 2200000
+    Description: Average video bitrate in bits/second [required]
+  VodSourceBucket:
+    Type: String
+    Default: ''
+    Description: The S3 bucket Name VOD contents exist
+  Width:
+    Type: Number
+    Default: 960
+    Description: Output video width, in pixels [required]
+  WhitelistRules:
+    Type: String
+    AllowedPattern: ^[0-9./]*$
+    Default: 0.0.0.0/0
+    Description: A list of one or more IPv4 CIDR addresses to allow (e.g. 0.0.0.0/0) [required]
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - production
+      - test
+      - development
+  TagKey:
+    Type: String
+    Default: createdby
+    AllowedPattern: .+
+  TagValue:
+    Type: String
+    Default: aws-cloudformation-samples 
+    AllowedPattern: .+
+
+Conditions:
+  Development: !Equals [ !Ref Environment, development]
+  RecOnMediaLive: !And [ !Equals [ !Ref LiveToVod, REC_ON_MEDIALIVE ], !Not [ !Equals [ !Ref VodSourceBucket, '' ] ] ]
+  RecOnMediaPackage: !And [ !Equals [ !Ref LiveToVod, REC_ON_MEDIAPACKAGE ], !Not [ !Equals [ !Ref VodSourceBucket, '' ] ] ]
+  PlayOnMediaLive: !And [ !Equals [ !Ref LiveToVod, PLAY_ON_MEDIALIVE ], !Not [ !Equals [ !Ref VodSourceBucket, '' ] ] ]
+  PlayOnMediaPackage: !And [ !Equals [ !Ref LiveToVod, PLAY_ON_MEDIAPACKAGE ], !Not [ !Equals [ !Ref VodSourceBucket, '' ] ] ]
+
+Resources:
+  # Nested Stack
+  MediaLive:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      NotificationARNs:
+        - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
+      Parameters:
+        ArchiveBucket: !If
+          - RecOnMediaLive
+          - !Ref VodSourceBucket
+          - ''
+        AutoInputFailover: !Ref AutoInputFailover
+        AudioBitrate: !Ref AudioBitrate
+        ChannelClass: !Ref ChannelClass
+        FramerateDenominator: !Ref FramerateDenominator
+        FramerateNumerator: !Ref FramerateNumerator
+        GopNumBFrames: !Ref GopNumBFrames
+        GopSize: !Ref GopSize
+        H264Profile: !Ref H264Profile
+        H264Level: !Ref H264Level
+        Height: !Ref Height
+        MediaPackageChannelId: !GetAtt MediaPackage.Outputs.ChannelId
+        LogicalNamePrefix: !Ref AWS::StackName
+        OutputType: MEDIA_PACKAGE
+        RtmpUrl1: !Ref RtmpUrl1
+        RtmpStreamKey1: !Ref RtmpStreamKey1
+        RtmpUrl2: !Ref RtmpUrl2
+        RtmpStreamKey2: !Ref RtmpStreamKey2
+        StreamKey: !Ref StreamKey
+        VideoBitrate: !Ref VideoBitrate
+        VodSourceBucket: !If
+          - PlayOnMediaLive
+          - !Ref VodSourceBucket
+          - ''
+        Width: !Ref Width
+        WhitelistRules: !Ref WhitelistRules
+        SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
+        SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
+        Environment: !Ref Environment
+        TagKey: !Ref TagKey
+        TagValue: !Ref TagValue
+      TemplateURL: !If
+        - Development
+        - https://eijikominami-test.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/medialive.yaml
+        - https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/medialive.yaml
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+  MediaPackage:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      NotificationARNs:
+        - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
+      Parameters: 
+        ArchiveBucket: !If
+          - RecOnMediaPackage
+          - !Ref VodSourceBucket
+          - ''
+        LogicalNamePrefix: !Ref AWS::StackName
+        OutputType: !Ref MediaPackageOutputType
+        StartoverWindowSeconds: !Ref StartoverWindowSeconds
+        SegmentDurationSeconds: !Ref SegmentDurationSeconds
+        VodSourceBucket: !If
+          - PlayOnMediaPackage
+          - !Ref VodSourceBucket
+          - ''
+        TagKey: !Ref TagKey
+        TagValue: !Ref TagValue
+      TemplateURL: !If
+        - Development 
+        - https://eijikominami-test.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/mediapackage.yaml
+        - https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/mediapackage.yaml
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+  SNSForAlert:
+    Type: 'AWS::Serverless::Application'
+    Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
+        SemanticVersion: 2.0.6
+      NotificationARNs:
+        - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
+      Parameters:
+        TopicName: !Sub Alert-createdby-${AWS::StackName}
+      Tags:
+        createdby: !Ref TagValue
+  SNSForDeployment:
+    Type: 'AWS::Serverless::Application'
+    Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
+        SemanticVersion: 2.0.6
+      Parameters:
+        TopicName: !Sub Deployment-createdby-${AWS::StackName}
+      Tags:
+        createdby: !Ref TagValue
+
+Outputs:
+  DashEndpointUrl:
+    Description: Apple HLS Endpoint Url
+    Value: !GetAtt MediaPackage.Outputs.DashEndpointUrl
+  HlsEndpointUrl:
+    Description: ISO-DASH Endpoint Url
+    Value: !GetAtt MediaPackage.Outputs.HlsEndpointUrl
+  MediaLiveChannelId:
+    Description: MediaLive Channel Id
+    Value: !GetAtt MediaLive.Outputs.ChannelId
+  MediaPackageChannelId:
+    Description: MediaPackage Channel Id
+    Value: !GetAtt MediaPackage.Outputs.ChannelId
+  RtmpPrimary1:
+    Description: The RTMP primary address 1
+    Value: !GetAtt MediaLive.Outputs.RtmpPrimary1
+  RtmpPrimary2:
+    Description: The RTMP primary address 2
+    Value: !GetAtt MediaLive.Outputs.RtmpPrimary2
+  RtmpSecondary1:
+    Description: The RTMP secondary address 1
+    Value: !GetAtt MediaLive.Outputs.RtmpSecondary1
+  RtmpSecondary2:
+    Description: The RTMP secondary address 2
+    Value: !GetAtt MediaLive.Outputs.RtmpSecondary2

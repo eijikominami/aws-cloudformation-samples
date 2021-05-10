@@ -11,7 +11,7 @@ Metadata:
     SpdxLicenseId: MIT
     Labels: ['apigateway', 'kinesis', 'dynamodb', 'lambda']
     HomePageUrl: https://github.com/eijikominami/
-    SemanticVersion: 1.0.9
+    SemanticVersion: 2.0.6
     SourceCodeUrl: https://github.com/eijikominami/aws-cloudformation-samples/tree/master/three-tier-app/sam-app/
 
 # 共通設定
@@ -24,7 +24,7 @@ Globals:
     Layers:
       # NOTE: AWS Lambda Extensions for Lambda Insights
       - !Sub arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2
-    Runtime: python3.8
+    Runtime: python3.9
     Tracing: Active
     
 Parameters:
@@ -419,6 +419,8 @@ Resources:
   LambdaPutData:
     Type: AWS::Serverless::Function
     Properties:
+      Architectures:
+        - arm64
       CodeUri: putData/
       Description: データをKinesisから取得しDynamoDBに書き込みます
       Events:
@@ -436,6 +438,8 @@ Resources:
   LambdaGetData:
     Type: AWS::Serverless::Function
     Properties:
+      Architectures:
+        - arm64
       CodeUri: getData/
       Description: データをDynamoDBから取得しAPI Gatewayに返却します
       Environment:

@@ -403,6 +403,8 @@ Resources:
   LambdaPutData:
     Type: AWS::Lambda::Function
     Properties: 
+      Architectures:
+        - arm64
       Code: 
         ZipFile: |
           import base64
@@ -513,7 +515,7 @@ Resources:
       Handler: index.lambda_handler
       MemorySize: 128
       Role: !GetAtt IAMRoleForLambda.Arn
-      Runtime: python3.8
+      Runtime: python3.9
       Timeout: 30
       TracingConfig: 
         Mode: Active
@@ -529,6 +531,8 @@ Resources:
   LambdaGetData:
     Type: AWS::Lambda::Function
     Properties: 
+      Architectures:
+        - arm64
       Code: 
         ZipFile: |
           import json
@@ -656,7 +660,7 @@ Resources:
       Handler: index.lambda_handler
       MemorySize: 128
       Role: !GetAtt IAMRoleForLambda.Arn
-      Runtime: python3.8
+      Runtime: python3.9
       Timeout: 30
       TracingConfig: 
         Mode: Active

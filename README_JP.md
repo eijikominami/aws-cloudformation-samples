@@ -1,12 +1,12 @@
-English / [**日本語**](README_JP.md)
+[**English**](README.md) / 日本語
 
 # AWSCloudFormationSamples
 
-+ AWSCloudFormationSamples is a collection of sample templates of CloudFormation.
++ AWSCloudFormationSamples は、Cloudformationテンプレートのサンプル集です。
 
 ## Templates
 
-+ This project contains the following sample templates.
++ 本プロジェクトは、以下のサンプルプログラムを含んでいます。
 
 | Template Name | CloudFormation template | SAM template |
 | --- | --- | --- |

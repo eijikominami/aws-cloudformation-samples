@@ -13,7 +13,7 @@ Metadata:
     - dynamodb
     - lambda
     HomePageUrl: https://github.com/eijikominami/
-    SemanticVersion: 1.0.9
+    SemanticVersion: 2.0.6
     SourceCodeUrl: https://github.com/eijikominami/aws-cloudformation-samples/tree/master/three-tier-app/sam-app/
 Globals:
   Function:
@@ -24,7 +24,7 @@ Globals:
     Handler: lambda_function.lambda_handler
     Layers:
     - Fn::Sub: arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2
-    Runtime: python3.8
+    Runtime: python3.9
     Tracing: Active
 Parameters:
   AccessControlAllowOrigin:
@@ -441,6 +441,8 @@ Resources:
   LambdaPutData:
     Type: AWS::Serverless::Function
     Properties:
+      Architectures:
+        - arm64
       CodeUri: s3://eijikominami/aws-cloudformation-samples/three-tier-app/4a419b5a675cc1719ab8ec2d7ea3ebc9
       Description: "\u30C7\u30FC\u30BF\u3092Kinesis\u304B\u3089\u53D6\u5F97\u3057\
         DynamoDB\u306B\u66F8\u304D\u8FBC\u307F\u307E\u3059"
@@ -466,6 +468,8 @@ Resources:
   LambdaGetData:
     Type: AWS::Serverless::Function
     Properties:
+      Architectures:
+        - arm64
       CodeUri: s3://eijikominami/aws-cloudformation-samples/three-tier-app/69785d8c2e8d0d676906f40e5dcf27fd
       Description: "\u30C7\u30FC\u30BF\u3092DynamoDB\u304B\u3089\u53D6\u5F97\u3057\
         API Gateway\u306B\u8FD4\u5374\u3057\u307E\u3059"
