@@ -1,8 +1,8 @@
 English / [**日本語**](README_JP.md)
 
-# CloudFormation Template - Media
+# CloudFormation template - Media
 
-This is a sample template about ``AWS Media Services on AWS``.
+This is a sample template about ``AWS Media Services``.
 
 ```bash
 .

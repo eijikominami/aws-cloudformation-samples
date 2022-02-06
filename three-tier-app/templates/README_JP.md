@@ -1,6 +1,6 @@
 [**English**](README.md) / 日本語
 
-# CloudFormation Template - Three Tier App
+# CloudFormation template - Three Tier App
 
 これは、`CloudFormation` 向けの **3層アプリケーション** のサンプルテンプレートです。
 

@@ -1,6 +1,6 @@
 English / [**日本語**](README_JP.md)
 
-# CloudFormation Template - Network
+# CloudFormation template - Network
 
 This is a sample template about network services on AWS.
 

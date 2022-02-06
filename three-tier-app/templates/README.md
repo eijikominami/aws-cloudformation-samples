@@ -1,6 +1,6 @@
 English / [**日本語**](README_JP.md)
 
-# CloudFormation Template - Three Tier App
+# CloudFormation template - Three Tier App
 
 This is a sample template of a **three tier application** for `CloudFormation`.
 

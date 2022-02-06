@@ -1,6 +1,6 @@
 [**English**](README.md) / 日本語
 
-# CloudFormation Template - Network
+# CloudFormation template - Network
 
 これは、**AWSのネットワークサービス** に関するサンプルテンプレートです。
 

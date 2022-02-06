@@ -1,6 +1,6 @@
 [**English**](README.md) / 日本語
 
-# CloudFormation Template - Media
+# CloudFormation template - Media
 
 これは、**AWSメディアサービス** に関するサンプルテンプレートです。
 
