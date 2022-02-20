@@ -13,4 +13,5 @@ This project contains the following sample templates.
 | IoT | [CloudFormation](/iot/README.md) | |
 | Media | [CloudFormation](/media/README.md) | |
 | Network | [CloudFormation](/network/README.md) | |
+| EC2 Ops/Automation | [CloudFormation](/ops/README.md) | |
 | Three Tier App | [CloudFormation](/three-tier-app/templates/README.md) | [SAM](/three-tier-app/sam-app/README.md) |
