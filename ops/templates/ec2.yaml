@@ -21,7 +21,8 @@ Metadata:
           - Email
       - Label: 
           default: 'Tag Configuration'
-        Parameters: 
+        Parameters:
+          - Environment
           - TagKey
           - TagValue
 
@@ -39,7 +40,7 @@ Parameters:
   EC2DailySnapshotScheduledAt:
     Type: String
     Default: '17:00'  
-    Description: Daily Snapshot time (HH:MM) [required]
+    Description: Daily Snapshot time (HH:MM)
   EC2ImageId:
     Type: AWS::EC2::Image::Id
     Default: ami-08a8688fb7eacb171
@@ -49,13 +50,20 @@ Parameters:
     Type: String
     Default: ''
     Description: The email address
+  Environment:
+    Type: String
+    Default: development
+    AllowedValues:
+      - production
+      - test
+      - development
   TagKey:
     Type: String
     Default: createdby
     AllowedPattern: .+
   TagValue:
     Type: String
-    Default: aws-cloudformation-templates
+    Default: aws-cloudformation-samples
     AllowedPattern: .+
 
 Conditions:
@@ -86,9 +94,28 @@ Resources:
         SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
         SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Tags:
+        - Key: environment
+          Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
       TemplateURL: https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/web-servers/template.yaml
+  SystemsManager:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      NotificationARNs:
+        - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
+      Parameters:
+        LogicalNamePrefix: !Ref AWS::StackName
+        SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
+        SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
+        TagKey: !Ref TagKey
+        TagValue: !Ref TagValue 
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+      TemplateURL: https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/cloudops/ssm.yaml
   # Security
   SecurityHub:
     Type: AWS::CloudFormation::Stack
@@ -96,9 +123,14 @@ Resources:
       NotificationARNs:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters:
-        SnsTopicARN: !GetAtt SNSForAlert.Outputs.SNSTopicArn
+        SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
+        SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
+        LogicalNamePrefix: !Ref AWS::StackName
+        TagValue: !Ref TagValue
       TemplateURL: https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/security/securityhub.yaml
       Tags:
+        - Key: environment
+          Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
   Inspector:
@@ -108,10 +140,14 @@ Resources:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters: 
         LogicalNamePrefix: !Ref AWS::StackName
+        SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
+        SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
         TagKey: !Ref TagKey
         TagValue: !Ref TagValue
       TemplateURL: https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/security/inspector.yaml
       Tags:
+        - Key: environment
+          Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
   GuardDuty:
@@ -120,9 +156,14 @@ Resources:
       NotificationARNs:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters: 
-        SnsTopicARN: !GetAtt SNSForAlert.Outputs.SNSTopicArn
+        LogicalNamePrefix: !Ref AWS::StackName
+        SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
+        SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
+        TagValue: !Ref TagValue
       TemplateURL: https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/security/guardduty.yaml
       Tags:
+        - Key: environment
+          Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
   # SNS       
@@ -137,6 +178,7 @@ Resources:
       Parameters:
         TopicName: !Sub Alert-createdby-${AWS::StackName}
       Tags:
+        environment: !Ref Environment
         createdby: !Ref TagValue
   SNSForDeployment:
     Type: AWS::Serverless::Application
@@ -147,6 +189,7 @@ Resources:
       Parameters:
         TopicName: !Sub Deployment-createdby-${AWS::StackName}
       Tags:
+        environment: !Ref Environment
         createdby: !Ref TagValue
   SNSSubscription:
     Condition: CreateSNSSubscription

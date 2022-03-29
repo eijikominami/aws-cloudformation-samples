@@ -188,7 +188,7 @@ Parameters:
     Description: A list of one or more IPv4 CIDR addresses to allow (e.g. 0.0.0.0/0) [required]
   Environment:
     Type: String
-    Default: production
+    Default: development
     AllowedValues:
       - production
       - test
@@ -256,6 +256,8 @@ Resources:
         - https://eijikominami-test.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/medialive.yaml
         - https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/medialive.yaml
       Tags:
+        - Key: environment
+          Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
   MediaPackage:
@@ -276,6 +278,7 @@ Resources:
           - PlayOnMediaPackage
           - !Ref VodSourceBucket
           - ''
+        Environment: !Ref Environment
         TagKey: !Ref TagKey
         TagValue: !Ref TagValue
       TemplateURL: !If
@@ -283,6 +286,8 @@ Resources:
         - https://eijikominami-test.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/mediapackage.yaml
         - https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/mediapackage.yaml
       Tags:
+        - Key: environment
+          Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
   SNSForAlert:
@@ -296,6 +301,7 @@ Resources:
       Parameters:
         TopicName: !Sub Alert-createdby-${AWS::StackName}
       Tags:
+        environment: !Ref Environment
         createdby: !Ref TagValue
   SNSForDeployment:
     Type: 'AWS::Serverless::Application'
@@ -306,6 +312,7 @@ Resources:
       Parameters:
         TopicName: !Sub Deployment-createdby-${AWS::StackName}
       Tags:
+        environment: !Ref Environment
         createdby: !Ref TagValue
 
 Outputs:

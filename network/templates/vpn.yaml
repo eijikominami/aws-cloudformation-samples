@@ -47,7 +47,7 @@ Parameters:
     Default: ''
   Environment:
     Type: String
-    Default: production
+    Default: development
     AllowedValues:
       - production
       - test
@@ -58,7 +58,7 @@ Parameters:
     AllowedPattern: .+
   TagValue:
     Type: String
-    Default: aws-cloudformation-templates
+    Default: aws-cloudformation-samples
     AllowedPattern: .+
 
 Conditions:

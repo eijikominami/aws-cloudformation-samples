@@ -63,6 +63,13 @@ Parameters:
     MaxValue: 1000
     Description: Batch Size in Lambda
   # リソースタグ
+  Environment:
+    Type: String
+    Default: development
+    AllowedValues:
+      - production
+      - test
+      - development
   TagKey:
     Type: String
     Default: createdby
@@ -81,12 +88,14 @@ Resources:
           - Effect: Allow
             Principal:
               Service: apigateway.amazonaws.com
-            Action: 'sts:AssumeRole'
+            Action: sts:AssumeRole
       Description: API Gateway to access to CloudWatch Logs.
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
-      RoleName: !Sub 'ThreeTierApp-SAM-APIGateway-CloudWatch-${AWS::Region}'
+      RoleName: !Sub ThreeTierApp-SAM-APIGateway-CloudWatch-${AWS::Region}
       Tags:
+        - Key: environment
+          Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
   # API Gateway の Lamba 実行を許可する IAM Role
@@ -99,19 +108,21 @@ Resources:
           - Effect: Allow
             Principal:
               Service: apigateway.amazonaws.com
-            Action: 'sts:AssumeRole'
+            Action: sts:AssumeRole
       Description: API Gateway to invoke Lambda.
       Policies:
-        - PolicyName: !Sub 'ThreeTierApp-SAM-APIGatewayInvokeFunctionLambda-${AWS::Region}'
+        - PolicyName: !Sub ThreeTierApp-SAM-APIGatewayInvokeFunctionLambda-${AWS::Region}
           PolicyDocument:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
                 Action:
-                  - 'lambda:InvokeFunction'
+                  - lambda:InvokeFunction
                 Resource: '*'
-      RoleName: !Sub 'ThreeTierApp-SAM-APIGateway-Lambda-${AWS::Region}'
+      RoleName: !Sub ThreeTierApp-SAM-APIGateway-Lambda-${AWS::Region}
       Tags:
+        - Key: environment
+          Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
   # API Gateway から Kinesis へのアクセスを許可する IAM Role
@@ -124,20 +135,22 @@ Resources:
           - Effect: Allow
             Principal:
               Service: apigateway.amazonaws.com
-            Action: 'sts:AssumeRole'
+            Action: sts:AssumeRole
       Description: API Gateway to access Kinesis.
       Policies:
-        - PolicyName: !Sub 'ThreeTierApp-SAM-APIGatewayAccessToKinesis-${AWS::Region}'
+        - PolicyName: !Sub ThreeTierApp-SAM-APIGatewayAccessToKinesis-${AWS::Region}
           PolicyDocument:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
                 Action:
-                  - 'kinesis:PutRecord'
-                  - 'kinesis:PutRecords'
+                  - kinesis:PutRecord
+                  - kinesis:PutRecords
                 Resource: !GetAtt Kinesis.Arn
-      RoleName: !Sub 'ThreeTierApp-SAM-APIGateway-Kinesis-${AWS::Region}'
+      RoleName: !Sub ThreeTierApp-SAM-APIGateway-Kinesis-${AWS::Region}
       Tags:
+        - Key: environment
+          Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
   # Lambda から　X-Ray, DynamoDB, Kinesis, CloudWatch Logs へのアクセスを許可する IAM Role
@@ -150,7 +163,7 @@ Resources:
           - Effect: Allow
             Principal:
               Service: lambda.amazonaws.com
-            Action: 'sts:AssumeRole'
+            Action: sts:AssumeRole
       Description: Lambda to access X-Ray, DynamoDB, Kinesis and CloudWatch Logs.
       # Managed Policy
       ManagedPolicyArns:
@@ -158,29 +171,31 @@ Resources:
           - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
           - arn:aws:iam::aws:policy/AmazonKinesisReadOnlyAccess 
       Policies:
-        - PolicyName: !Sub 'ThreeTierApp-SAM-AWSLambdaBasicExecutionRole-${AWS::Region}'
+        - PolicyName: !Sub ThreeTierApp-SAM-AWSLambdaBasicExecutionRole-${AWS::Region}
           PolicyDocument:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
                 Action:
-                  - 'kinesis:PutRecord'
+                  - kinesis:PutRecord
                 Resource: '*'
               - Effect: Allow
                 Action:
-                  - 'logs:CreateLogGroup'
-                  - 'logs:CreateLogStream'
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
                 Resource: '*'
               - Effect: Allow
                 Action:
-                  - 'logs:PutLogEvents'
+                  - logs:PutLogEvents
                 Resource: '*'
               - Effect: Allow
                 Action:
-                  - 'cloudwatch:PutMetricData'
+                  - cloudwatch:PutMetricData
                 Resource: '*'
-      RoleName: !Sub 'ThreeTierApp-SAM-ExecuteLambda-${AWS::Region}'
+      RoleName: !Sub ThreeTierApp-SAM-ExecuteLambda-${AWS::Region}
       Tags:
+        - Key: environment
+          Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
   # API Gateway
@@ -391,6 +406,8 @@ Resources:
         KeyId: alias/aws/kinesis
       ShardCount: !Ref KinesisStreamShardCount
       Tags:
+        - Key: environment
+          Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
   # DynamoDB
@@ -413,6 +430,8 @@ Resources:
         SSEEnabled: true
       TableName: ThreeTierApp-SAM-data
       Tags:
+        - Key: environment
+          Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
   # Lambda

@@ -71,7 +71,7 @@ Parameters:
     Description: The channel type [required] 
   Environment:
     Type: String
-    Default: production
+    Default: development
     AllowedValues:
       - production
       - test
@@ -108,6 +108,8 @@ Resources:
         - https://eijikominami-test.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/ivs.yaml
         - https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/ivs.yaml
       Tags:
+        - Key: environment
+          Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
   StaticWebsiteHosting:
@@ -129,6 +131,8 @@ Resources:
         - https://eijikominami-test.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/static-website-hosting-with-ssl/template.yaml
         - https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/static-website-hosting-with-ssl/template.yaml
       Tags:
+        - Key: environment
+          Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
   SNSForAlert:
@@ -142,6 +146,7 @@ Resources:
       Parameters:
         TopicName: !Sub Alert-createdby-${AWS::StackName}
       Tags:
+        environment: !Ref Environment
         createdby: !Ref TagValue
   SNSForDeployment:
     Type: 'AWS::Serverless::Application'
@@ -152,6 +157,7 @@ Resources:
       Parameters:
         TopicName: !Sub Deployment-createdby-${AWS::StackName}
       Tags:
+        environment: !Ref Environment
         createdby: !Ref TagValue
 
 Outputs:

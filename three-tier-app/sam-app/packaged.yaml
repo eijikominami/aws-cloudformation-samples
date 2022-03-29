@@ -23,7 +23,7 @@ Globals:
           Ref: DynamoDBData
     Handler: lambda_function.lambda_handler
     Layers:
-    - Fn::Sub: arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2
+    - !Sub arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2
     Runtime: python3.9
     Tracing: Active
 Parameters:
@@ -73,7 +73,7 @@ Resources:
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
       RoleName:
-        Fn::Sub: ThreeTierApp-SAM-APIGateway-CloudWatch-${AWS::Region}
+        !Sub ThreeTierApp-SAM-APIGateway-CloudWatch-${AWS::Region}
       Tags:
       - Key:
           Ref: TagKey
@@ -92,7 +92,7 @@ Resources:
       Description: API Gateway to invoke Lambda.
       Policies:
       - PolicyName:
-          Fn::Sub: ThreeTierApp-SAM-APIGatewayInvokeFunctionLambda-${AWS::Region}
+          !Sub ThreeTierApp-SAM-APIGatewayInvokeFunctionLambda-${AWS::Region}
         PolicyDocument:
           Version: 2012-10-17
           Statement:
@@ -101,7 +101,7 @@ Resources:
             - lambda:InvokeFunction
             Resource: '*'
       RoleName:
-        Fn::Sub: ThreeTierApp-SAM-APIGateway-Lambda-${AWS::Region}
+        !Sub ThreeTierApp-SAM-APIGateway-Lambda-${AWS::Region}
       Tags:
       - Key:
           Ref: TagKey
@@ -120,7 +120,7 @@ Resources:
       Description: API Gateway to access Kinesis.
       Policies:
       - PolicyName:
-          Fn::Sub: ThreeTierApp-SAM-APIGatewayAccessToKinesis-${AWS::Region}
+          !Sub ThreeTierApp-SAM-APIGatewayAccessToKinesis-${AWS::Region}
         PolicyDocument:
           Version: 2012-10-17
           Statement:
@@ -133,7 +133,7 @@ Resources:
               - Kinesis
               - Arn
       RoleName:
-        Fn::Sub: ThreeTierApp-SAM-APIGateway-Kinesis-${AWS::Region}
+        !Sub ThreeTierApp-SAM-APIGateway-Kinesis-${AWS::Region}
       Tags:
       - Key:
           Ref: TagKey
@@ -156,7 +156,7 @@ Resources:
       - arn:aws:iam::aws:policy/AmazonKinesisReadOnlyAccess
       Policies:
       - PolicyName:
-          Fn::Sub: ThreeTierApp-SAM-AWSLambdaBasicExecutionRole-${AWS::Region}
+          !Sub ThreeTierApp-SAM-AWSLambdaBasicExecutionRole-${AWS::Region}
         PolicyDocument:
           Version: 2012-10-17
           Statement:
@@ -178,7 +178,7 @@ Resources:
             - cloudwatch:PutMetricData
             Resource: '*'
       RoleName:
-        Fn::Sub: ThreeTierApp-SAM-ExecuteLambda-${AWS::Region}
+        !Sub ThreeTierApp-SAM-ExecuteLambda-${AWS::Region}
       Tags:
       - Key:
           Ref: TagKey
@@ -255,22 +255,22 @@ Resources:
                   - IAMRoleForAPIGatewayAccessToKinesis
                   - Arn
                 uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord
+                  !Sub arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord
                 responses:
                   '200':
                     statusCode: '200'
                     responseParameters:
                       method.response.header.Access-Control-Expose-Headers:
-                        Fn::Sub: '''${AccessControlExposeHeaders}'''
+                        !Sub '''${AccessControlExposeHeaders}'''
                       method.response.header.Access-Control-Allow-Origin:
-                        Fn::Sub: '''${AccessControlAllowOrigin}'''
+                        !Sub '''${AccessControlAllowOrigin}'''
                   default:
                     statusCode: '500'
                     responseParameters:
                       method.response.header.Access-Control-Expose-Headers:
-                        Fn::Sub: '''${AccessControlExposeHeaders}'''
+                        !Sub '''${AccessControlExposeHeaders}'''
                       method.response.header.Access-Control-Allow-Origin:
-                        Fn::Sub: '''${AccessControlAllowOrigin}'''
+                        !Sub '''${AccessControlAllowOrigin}'''
                 passthroughBehavior: when_no_templates
                 httpMethod: POST
                 requestTemplates:
@@ -305,11 +305,11 @@ Resources:
                     statusCode: '200'
                     responseParameters:
                       method.response.header.Access-Control-Expose-Headers:
-                        Fn::Sub: '''${AccessControlExposeHeaders}'''
+                        !Sub '''${AccessControlExposeHeaders}'''
                       method.response.header.Access-Control-Allow-Methods: '''POST,GET,OPTIONS'''
                       method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
                       method.response.header.Access-Control-Allow-Origin:
-                        Fn::Sub: '''${AccessControlAllowOrigin}'''
+                        !Sub '''${AccessControlAllowOrigin}'''
                 passthroughBehavior: when_no_match
                 requestTemplates:
                   application/json: '{"statusCode": 200}'
@@ -495,4 +495,4 @@ Outputs:
   APIGatewayEndpointURL:
     Description: API Gateway Endpoint URL
     Value:
-      Fn::Sub: ${Api}.execute-api.${AWS::Region}.amazonaws.com
+      !Sub ${Api}.execute-api.${AWS::Region}.amazonaws.com

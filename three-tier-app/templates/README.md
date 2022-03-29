@@ -52,9 +52,9 @@ Register `user_id` and related data.
 
 | Response Code | Details |
 | --- | --- |
-| 200 | Registered. |
-| 400 | Invalid request body. |
-| 500 | Internal server error. |
+| 200 | Registered |
+| 400 | Invalid request body |
+| 500 | Internal server error |
 
 ### GET /user/{user_id}
 Get user information.
@@ -63,8 +63,8 @@ Get user information.
 
 | Response Code | Details |
 | --- | --- |
-| 200 | OK. |
-| 500 | Internal server error. |
+| 200 | OK |
+| 500 | Internal server error |
 
 ```json
 {
