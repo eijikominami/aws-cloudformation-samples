@@ -63,7 +63,7 @@ def sendMessage(event, hook_url, message):
             req = Request("https://" + hook_url, json.dumps(message).encode('utf-8'))
             try:
                 logger.structure_logs(append=True, slack_hook_url=hook_url)
-                logger.info("Posted a message to the Slack.")
+                logger.info("Posted a message to Slack.")
                 response = urlopen(req)
                 response.read()
             except HTTPError:

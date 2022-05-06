@@ -147,7 +147,7 @@ Resources:
                 Resource: '*' 
         - !If
           - CreateKMSKey
-          - PolicyName: CustomPolicy
+          - PolicyName: KMS
             PolicyDocument:
               Version: 2012-10-17
               Statement:
