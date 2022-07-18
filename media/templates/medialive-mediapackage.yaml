@@ -318,10 +318,16 @@ Resources:
 Outputs:
   DashEndpointUrl:
     Description: Apple HLS Endpoint Url
-    Value: !GetAtt MediaPackage.Outputs.DashEndpointUrl
+    Value: !Join
+      - ''
+      - - !GetAtt MediaPackage.Outputs.DashEndpointUrl
+        - !GetAtt MediaPackage.Outputs.ManifestFile
   HlsEndpointUrl:
     Description: ISO-DASH Endpoint Url
-    Value: !GetAtt MediaPackage.Outputs.HlsEndpointUrl
+    Value:  !Join
+      - ''
+      - - !GetAtt MediaPackage.Outputs.HlsEndpointUrl
+        - !GetAtt MediaPackage.Outputs.ManifestFile
   MediaLiveChannelId:
     Description: MediaLive Channel Id
     Value: !GetAtt MediaLive.Outputs.ChannelId

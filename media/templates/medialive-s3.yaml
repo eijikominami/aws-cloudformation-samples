@@ -36,6 +36,14 @@ Metadata:
           - VideoBitrate
           - Width
           - WhitelistRules
+      - Label:
+          default: 'MediaTailor Configuration'
+        Parameters:
+          - MediaTailorAdDecisionServerUrl
+          - MediaTailorMaxDurationSeconds
+          - MediaTailorPersonalizationThresholdSeconds
+          - MediaTailorSlateAdUrl
+          - MediaTailorVideoContentSourceUrl
       - Label: 
           default: 'RTMP output Configuration'
         Parameters: 
@@ -144,6 +152,28 @@ Parameters:
     Type: Number
     Default: 540
     Description: Output video height, in pixels [required]
+  MediaTailorAdDecisionServerUrl:
+    Type: String
+    AllowedPattern: .+
+    Description: The URL for the ad decision server (ADS) for pre-roll ads [required]  
+  MediaTailorMaxDurationSeconds:
+    Type: Number
+    Default: 120
+    MinValue: 0
+    Description: The maximum allowed duration for the pre-roll ad avail  
+  MediaTailorPersonalizationThresholdSeconds:
+    Type: Number
+    Default: 8
+    MinValue: 0
+    Description: Defines the maximum duration of underfilled ad time (in seconds) allowed in an ad break 
+  MediaTailorSlateAdUrl: 
+    Type: String
+    Default: ''
+    Description: The URL for a high-quality video asset to transcode and use to fill in time that's not used by ads. MediaTailor shows the slate to fill in gaps in media content [required]
+  MediaTailorVideoContentSourceUrl:
+    Type: String
+    AllowedPattern: .+
+    Description: The URL prefix for the parent manifest for the stream, minus the asset ID [required]
   RtmpUrl1:
     Type: String
     Default: ''
@@ -198,6 +228,7 @@ Parameters:
     AllowedPattern: .+
 
 Conditions:
+  CreateMediaTailor: !And [ !Not [ !Equals [ !Ref MediaTailorAdDecisionServerUrl, '' ] ], !Not [ !Equals [ !Ref MediaTailorSlateAdUrl, '' ] ], !Not [ !Equals [ !Ref MediaTailorVideoContentSourceUrl, '' ] ] ]
   Development: !Equals [ !Ref Environment, development]
 
 Resources:
@@ -244,6 +275,31 @@ Resources:
           Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
+  MediaTailor:
+    Condition: CreateMediaTailor
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      NotificationARNs:
+        - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
+      Parameters: 
+        AdDecisionServerUrl: !Ref MediaTailorAdDecisionServerUrl
+        LogicalNamePrefix: !Ref AWS::StackName
+        MaxDurationSeconds: !Ref MediaTailorMaxDurationSeconds
+        PersonalizationThresholdSeconds: !Ref MediaTailorPersonalizationThresholdSeconds
+        SlateAdUrl: !Ref MediaTailorSlateAdUrl
+        VideoContentSourceUrl: !Ref MediaTailorVideoContentSourceUrl
+        Environment: !Ref Environment
+        TagKey: !Ref TagKey
+        TagValue: !Ref TagValue        
+      TemplateURL: !If
+        - Development 
+        - https://eijikominami-test.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/mediatailor.yaml
+        - https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/mediatailor.yaml
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
   StaticWebsiteHosting:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -254,7 +310,7 @@ Resources:
         CloudFrontMinimumTTL: !Ref CloudFrontMinimumTTL
         CloudFrontMaximumTTL: !Ref CloudFrontMaximumTTL
         CloudFrontOriginShield: !Ref CloudFrontOriginShield
-        DomainName: !Sub medialive-s3-cloudfront-${AWS::AccountId}
+        DomainName: !Sub medialive-${AWS::AccountId}
         Logging: DISABLED
         SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
         SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
@@ -295,7 +351,10 @@ Resources:
 Outputs:
   CloudFrontURL:
     Description: CloudFront URL
-    Value: !GetAtt StaticWebsiteHosting.Outputs.CloudFrontURL
+    Value: !Join
+      - ''
+      - - https://
+        - !GetAtt StaticWebsiteHosting.Outputs.CloudFrontURL
   MediaLiveChannelId:
     Description: MediaLive Channel Id
     Value: !GetAtt MediaLive.Outputs.ChannelId

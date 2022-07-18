@@ -42,6 +42,13 @@ Metadata:
         Parameters: 
           - ExpirationDate
           - MaxAgeSeconds
+      - Label:
+          default: 'MediaTailor Configuration'
+        Parameters:
+          - MediaTailorAdDecisionServerUrl
+          - MediaTailorMaxDurationSeconds
+          - MediaTailorPersonalizationThresholdSeconds
+          - MediaTailorSlateAdUrl
       - Label: 
           default: 'RTMP output Configuration'
         Parameters: 
@@ -168,6 +175,24 @@ Parameters:
     Type: Number
     Default: 30000
     Description: The time in seconds that browser caches the preflight response [required]
+  MediaTailorAdDecisionServerUrl:
+    Type: String
+    Default: ''
+    Description: The URL for the ad decision server (ADS) for pre-roll ads 
+  MediaTailorMaxDurationSeconds:
+    Type: Number
+    Default: 120
+    MinValue: 0
+    Description: The maximum allowed duration for the pre-roll ad avail  
+  MediaTailorPersonalizationThresholdSeconds:
+    Type: Number
+    Default: 8
+    MinValue: 0
+    Description: Defines the maximum duration of underfilled ad time (in seconds) allowed in an ad break 
+  MediaTailorSlateAdUrl: 
+    Type: String
+    Default: ''
+    Description: The URL for a high-quality video asset to transcode and use to fill in time that's not used by ads. MediaTailor shows the slate to fill in gaps in media content [required]
   RtmpUrl1:
     Type: String
     Default: ''
@@ -222,6 +247,7 @@ Parameters:
     AllowedPattern: .+
 
 Conditions:
+  CreateMediaTailor: !And [ !Not [ !Equals [ !Ref MediaTailorAdDecisionServerUrl, '' ] ], !Not [ !Equals [ !Ref MediaTailorSlateAdUrl, '' ] ] ]
   Development: !Equals [ !Ref Environment, development]
 
 Resources:
@@ -277,7 +303,10 @@ Resources:
         ExpirationDate: !Ref ExpirationDate
         LogicalNamePrefix: !Ref AWS::StackName
         MaxAgeSeconds: !Ref MaxAgeSeconds
-        UserAgent: !Ref AWS::StackName
+        UserAgent: !If
+          - CreateMediaTailor
+          - ''
+          - !Ref AWS::StackName
         SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
         SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
         Environment: !Ref Environment
@@ -287,6 +316,35 @@ Resources:
         - Development
         - https://eijikominami-test.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/mediastore.yaml
         - https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/mediastore.yaml
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+  MediaTailor:
+    Condition: CreateMediaTailor
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      NotificationARNs:
+        - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
+      Parameters: 
+        AdDecisionServerUrl: !Ref MediaTailorAdDecisionServerUrl
+        LogicalNamePrefix: !Ref AWS::StackName
+        MaxDurationSeconds: !Ref MediaTailorMaxDurationSeconds
+        PersonalizationThresholdSeconds: !Ref MediaTailorPersonalizationThresholdSeconds
+        SlateAdUrl: !Ref MediaTailorSlateAdUrl
+        VideoContentSourceUrl: !Join
+          - ''
+          - - !GetAtt MediaStore.Outputs.Endpoint
+            - '/'
+            - !GetAtt MediaLive.Outputs.ManifestFile
+        Environment: !Ref Environment
+        TagKey: !Ref TagKey
+        TagValue: !Ref TagValue        
+      TemplateURL: !If
+        - Development 
+        - https://eijikominami-test.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/mediatailor.yaml
+        - https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/mediatailor.yaml
       Tags:
         - Key: environment
           Value: !Ref Environment
@@ -349,7 +407,10 @@ Resources:
 Outputs:
   CloudFrontURL:
     Description: CloudFront URL
-    Value: !GetAtt CloudFront.Outputs.CloudFrontURL
+    Value: !Join
+      - ''
+      - - https://
+        - !GetAtt CloudFront.Outputs.CloudFrontURL
   EndpointUrl:
     Description: Endpoint Url
     Value: !GetAtt MediaStore.Outputs.Endpoint
