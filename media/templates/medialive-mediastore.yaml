@@ -258,6 +258,10 @@ Resources:
       NotificationARNs:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters: 
+        AdMarker: !If
+          - CreateMediaTailor
+          - ENABLED
+          - DISABLED
         AutoInputFailover: !Ref AutoInputFailover
         AudioBitrate: !Ref AudioBitrate
         ChannelClass: !Ref ChannelClass
@@ -329,6 +333,12 @@ Resources:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters: 
         AdDecisionServerUrl: !Ref MediaTailorAdDecisionServerUrl
+        CdnContentSegmentUrlPrefix: !Join
+          - ''
+          - - https://
+            - !GetAtt CloudFront.Outputs.CloudFrontURL
+            - '/'
+            - !GetAtt MediaLive.Outputs.ManifestFile 
         LogicalNamePrefix: !Ref AWS::StackName
         MaxDurationSeconds: !Ref MediaTailorMaxDurationSeconds
         PersonalizationThresholdSeconds: !Ref MediaTailorPersonalizationThresholdSeconds
@@ -384,7 +394,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.0.31
+        SemanticVersion: 2.0.32
       NotificationARNs:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters:
@@ -397,7 +407,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.0.31
+        SemanticVersion: 2.0.32
       Parameters:
         TopicName: !Sub Deployment-createdby-${AWS::StackName}
       Tags:
