@@ -215,6 +215,8 @@ Resources:
           Value: !Ref TagValue
   # Lambda
   LambdaSendChannelList:
+    DependsOn:
+      - LogGroupForLambdaSendChannelList
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: sendChannelList/
@@ -239,7 +241,7 @@ Resources:
   LogGroupForLambdaSendChannelList:
     Type: AWS::Logs::LogGroup
     Properties: 
-      LogGroupName: !Sub /aws/lambda/${LambdaSendChannelList}
+      LogGroupName: !Sub /aws/lambda/sendChannelList-createdby-${AWS::StackName}
       RetentionInDays: 60
       Tags: 
         - Key: environment

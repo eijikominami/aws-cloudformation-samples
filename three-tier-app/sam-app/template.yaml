@@ -455,6 +455,8 @@ Resources:
       Role: !GetAtt IAMRoleForLambda.Arn
       Timeout: 30
   LambdaGetData:
+    DependsOn:
+      - CloudWatchLogsGroupForApiGateway
     Type: AWS::Serverless::Function
     Properties:
       Architectures:

@@ -139,6 +139,8 @@ Resources:
       PlacementName: sample-placement
       ProjectName: !GetAtt Project.ProjectName
   Lambda:
+    DependsOn:
+      - LogGroupForLambda
     Type: AWS::Lambda::Function
     Properties: 
       Architectures:
@@ -210,7 +212,7 @@ Resources:
   LogGroupForLambda:
     Type: AWS::Logs::LogGroup
     Properties: 
-      LogGroupName: !Sub /aws/lambda/${Lambda}
+      LogGroupName: /aws/lambda/sendMessageTriggedByIot1Click
       RetentionInDays: 60
       Tags:
         - Key: environment

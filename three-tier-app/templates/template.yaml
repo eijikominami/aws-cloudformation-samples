@@ -546,6 +546,8 @@ Resources:
       FunctionName: !GetAtt LambdaPutData.Arn
       StartingPosition: TRIM_HORIZON
   LambdaGetData:
+    DependsOn:
+      - CloudWatchLogsGroupForApiGateway
     Type: AWS::Lambda::Function
     Properties: 
       Architectures:
@@ -683,7 +685,7 @@ Resources:
         Mode: Active
   # CloudWatch Logs
   CloudWatchLogsGroupForApiGateway:
-    Type: 'AWS::Logs::LogGroup'
+    Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: /aws/apigateway/ThreeTierApp-CFn
       RetentionInDays: 365
