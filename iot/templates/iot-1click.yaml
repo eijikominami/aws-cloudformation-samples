@@ -54,7 +54,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.0.39
+        SemanticVersion: 2.0.48
       Parameters:
         TopicName: !Sub Alert-createdby-${AWS::StackName}
       Tags:
@@ -195,7 +195,7 @@ Resources:
       FunctionName: sendMessageTriggedByIot1Click
       Handler: index.lambda_handler
       Layers:
-        - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPython:9
+        - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV2-Arm64:12
       MemorySize: 128
       Role: !GetAtt IAMRoleForLambda.Arn
       Runtime: python3.9
@@ -233,7 +233,7 @@ Resources:
         FunctionResouceName: !Ref Lambda
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/cloudwatch-alarm-about-lambda
-        SemanticVersion: 2.0.39
+        SemanticVersion: 2.0.48
       Tags:
         environment: !Ref Environment
         createdby: !Ref TagValue

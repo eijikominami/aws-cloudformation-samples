@@ -11,7 +11,7 @@ Metadata:
     SpdxLicenseId: MIT
     Labels: ['apigateway', 'kinesis', 'dynamodb', 'lambda']
     HomePageUrl: https://github.com/eijikominami/
-    SemanticVersion: 2.0.39
+    SemanticVersion: 2.0.48
     SourceCodeUrl: https://github.com/eijikominami/aws-cloudformation-samples/tree/master/three-tier-app/sam-app/
 
 # 共通設定
@@ -23,7 +23,7 @@ Globals:
     Handler: lambda_function.lambda_handler
     Layers:
       # NOTE: AWS Lambda Extensions for Lambda Insights
-      - !Sub arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2
+      - !Sub arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension-Arm64:2
     Runtime: python3.9
     Tracing: Active
     
