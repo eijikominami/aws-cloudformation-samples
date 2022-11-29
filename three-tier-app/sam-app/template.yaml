@@ -11,7 +11,7 @@ Metadata:
     SpdxLicenseId: MIT
     Labels: ['apigateway', 'kinesis', 'dynamodb', 'lambda']
     HomePageUrl: https://github.com/eijikominami/
-    SemanticVersion: 2.0.49
+    SemanticVersion: 2.0.55
     SourceCodeUrl: https://github.com/eijikominami/aws-cloudformation-samples/tree/master/three-tier-app/sam-app/
 
 # 共通設定
@@ -80,7 +80,7 @@ Parameters:
 Resources:
   # API Gateway から CloudWatch Logs へのアクセスを許可する IAM Role
   IAMRoleForAPIGatewayAccessToCloudWatchLogs:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -100,7 +100,7 @@ Resources:
           Value: !Ref TagValue
   # API Gateway の Lamba 実行を許可する IAM Role
   IAMRoleForAPIGatewayInvokeFunctionLambda:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -127,7 +127,7 @@ Resources:
           Value: !Ref TagValue
   # API Gateway から Kinesis へのアクセスを許可する IAM Role
   IAMRoleForAPIGatewayAccessToKinesis:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -155,7 +155,7 @@ Resources:
           Value: !Ref TagValue
   # Lambda から　X-Ray, DynamoDB, Kinesis, CloudWatch Logs へのアクセスを許可する IAM Role
   IAMRoleForLambda:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -200,7 +200,7 @@ Resources:
           Value: !Ref TagValue
   # API Gateway
   ApiAccount:
-    Type: 'AWS::ApiGateway::Account'
+    Type: AWS::ApiGateway::Account
     Properties:
       CloudWatchRoleArn: !GetAtt IAMRoleForAPIGatewayAccessToCloudWatchLogs.Arn
   Api:
@@ -396,7 +396,7 @@ Resources:
         alias: Prod
   # Kinesis Data Streams
   Kinesis:
-    Type: 'AWS::Kinesis::Stream'
+    Type: AWS::Kinesis::Stream
     Properties:
       Name: !Ref 'AWS::StackName'
       RetentionPeriodHours: !Ref KinesisStreamRetentionPeriodHours
@@ -412,7 +412,7 @@ Resources:
           Value: !Ref TagValue
   # DynamoDB
   DynamoDBData:
-    Type: 'AWS::DynamoDB::Table'
+    Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
         - AttributeName: user_id
@@ -473,7 +473,7 @@ Resources:
       Timeout: 30
   # CloudWatch Logs
   CloudWatchLogsGroupForApiGateway:
-    Type: 'AWS::Logs::LogGroup'
+    Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: /aws/apigateway/ThreeTierApp-SAM
       RetentionInDays: 365

@@ -54,7 +54,7 @@ Parameters:
 Resources:
   # API Gateway から CloudWatch Logs へのアクセスを許可する IAM Role
   IAMRoleForAPIGatewayAccessToCloudWatchLogs:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -74,7 +74,7 @@ Resources:
           Value: !Ref TagValue
   # API Gateway の Lamba 実行を許可する IAM Role
   IAMRoleForAPIGatewayInvokeFunctionLambda:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -96,7 +96,7 @@ Resources:
       RoleName: !Sub ThreeTierApp-CFn-APIGateway-Lambda-${AWS::Region}
   # API Gateway から Kinesis へのアクセスを許可する IAM Role
   IAMRoleForAPIGatewayAccessToKinesis:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -124,7 +124,7 @@ Resources:
           Value: !Ref TagValue
   # Lambda から　X-Ray, DynamoDB, Kinesis, CloudWatch Logs へのアクセスを許可する IAM Role
   IAMRoleForLambda:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -169,11 +169,11 @@ Resources:
           Value: !Ref TagValue
   # API Gateway
   ApiAccount:
-    Type: 'AWS::ApiGateway::Account'
+    Type: AWS::ApiGateway::Account
     Properties:
       CloudWatchRoleArn: !GetAtt IAMRoleForAPIGatewayAccessToCloudWatchLogs.Arn
   Api:
-    Type: 'AWS::ApiGateway::RestApi'
+    Type: AWS::ApiGateway::RestApi
     Properties:
       Description: Endpoint of Three-layer model.
       EndpointConfiguration:
@@ -182,7 +182,7 @@ Resources:
       FailOnWarnings: true
       Name: !Ref 'AWS::StackName'
   ApiUser:
-    Type: 'AWS::ApiGateway::Resource'
+    Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref Api
       ParentId: !GetAtt 
@@ -190,13 +190,13 @@ Resources:
         - RootResourceId
       PathPart: 'user'
   ApiUserByUserId:
-    Type: 'AWS::ApiGateway::Resource'
+    Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref Api
       ParentId: !Ref ApiUser
       PathPart: '{user_id}'
   ApiPost:
-    Type: 'AWS::ApiGateway::Method'
+    Type: AWS::ApiGateway::Method
     Properties:
       ApiKeyRequired: false
       AuthorizationType: NONE
@@ -250,7 +250,7 @@ Resources:
       ResourceId: !Ref ApiUser
       RestApiId: !Ref Api
   ApiUserOptions:
-    Type: 'AWS::ApiGateway::Method'
+    Type: AWS::ApiGateway::Method
     Properties:
       ApiKeyRequired: false
       AuthorizationType: NONE
@@ -279,7 +279,7 @@ Resources:
       ResourceId: !Ref ApiUser
       RestApiId: !Ref Api
   ApiUserGet:
-    Type: 'AWS::ApiGateway::Method'
+    Type: AWS::ApiGateway::Method
     Properties:
       ApiKeyRequired: false
       AuthorizationType: NONE
@@ -310,7 +310,7 @@ Resources:
     DependsOn:
       - ApiUserGet
       - ApiPost
-    Type: 'AWS::ApiGateway::Deployment'
+    Type: AWS::ApiGateway::Deployment
     Properties:
       Description: Deployment for prod
       RestApiId: !Ref Api
@@ -335,7 +335,7 @@ Resources:
           alias: Prod
       StageName: Prod
   ApiModelPostBody:
-    Type: 'AWS::ApiGateway::Model'
+    Type: AWS::ApiGateway::Model
     Properties:
       ContentType: application/json
       Description: POSY Body
@@ -363,14 +363,14 @@ Resources:
             minLength: 1
             maxLength: 1024
   ApiRequestValidatorParameterCheckingOnly:
-    Type: 'AWS::ApiGateway::RequestValidator'
+    Type: AWS::ApiGateway::RequestValidator
     Properties:
       Name: ParameterCheckingOnly
       RestApiId: !Ref Api
       ValidateRequestBody: false
       ValidateRequestParameters: true
   ApiRequestValidatorBodyCheckingOnly:
-    Type: 'AWS::ApiGateway::RequestValidator'
+    Type: AWS::ApiGateway::RequestValidator
     Properties:
       Name: BodyCheckingOnly
       RestApiId: !Ref Api
@@ -378,7 +378,7 @@ Resources:
       ValidateRequestParameters: false
   # Kinesis Data Streams
   Kinesis:
-    Type: 'AWS::Kinesis::Stream'
+    Type: AWS::Kinesis::Stream
     Properties:
       Name: !Ref 'AWS::StackName'
       RetentionPeriodHours: !Ref KinesisStreamRetentionPeriodHours
@@ -394,7 +394,7 @@ Resources:
           Value: !Ref TagValue
   # DynamoDB
   DynamoDBData:
-    Type: 'AWS::DynamoDB::Table'
+    Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
         - AttributeName: user_id

@@ -43,7 +43,7 @@ Parameters:
     Description: Daily Snapshot time (HH:MM)
   EC2ImageId:
     Type: AWS::EC2::Image::Id
-    Default: ami-08a8688fb7eacb171
+    Default: ami-072bfb8ae2c884cc4
     AllowedPattern: ^ami-.+$
     Description: The EC2 Image Id [required]
   Email:
@@ -68,6 +68,7 @@ Parameters:
 
 Conditions:
   CreateSNSSubscription: !Not [ !Equals [ !Ref Email, ''] ]
+  Development: !Equals [ !Ref Environment, development]
 
 Resources:
   # Service-linked Role
@@ -98,7 +99,10 @@ Resources:
           Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
-      TemplateURL: https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/web-servers/template.yaml
+      TemplateURL: !If
+        - Development
+        - https://s3.amazonaws.com/eijikominami-test/aws-cloudformation-templates/web-servers/template.yaml
+        - https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/web-servers/template.yaml
   SystemsManager:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -115,7 +119,10 @@ Resources:
           Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
-      TemplateURL: https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/cloudops/ssm.yaml
+      TemplateURL: !If
+        - Development
+        - https://s3.amazonaws.com/eijikominami-test/aws-cloudformation-templates/cloudops/ssm.yaml
+        - https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/cloudops/ssm.yaml
   # Security
   SecurityHub:
     Type: AWS::CloudFormation::Stack
@@ -127,7 +134,10 @@ Resources:
         SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
         LogicalNamePrefix: !Ref AWS::StackName
         TagValue: !Ref TagValue
-      TemplateURL: https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/security/securityhub.yaml
+      TemplateURL: !If
+        - Development
+        - https://s3.amazonaws.com/eijikominami-test/aws-cloudformation-templates/security/securityhub.yaml
+        - https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/security/securityhub.yaml
       Tags:
         - Key: environment
           Value: !Ref Environment
@@ -144,7 +154,10 @@ Resources:
         SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
         TagKey: !Ref TagKey
         TagValue: !Ref TagValue
-      TemplateURL: https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/security/inspector.yaml
+      TemplateURL: !If
+        - Development
+        - https://s3.amazonaws.com/eijikominami-test/aws-cloudformation-templates/security/inspector.yaml
+        - https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/security/inspector.yaml
       Tags:
         - Key: environment
           Value: !Ref Environment
@@ -160,7 +173,10 @@ Resources:
         SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
         SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
         TagValue: !Ref TagValue
-      TemplateURL: https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/security/guardduty.yaml
+      TemplateURL: !If
+        - Development
+        - https://s3.amazonaws.com/eijikominami-test/aws-cloudformation-templates/security/guardduty.yaml
+        - https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/security/guardduty.yaml
       Tags:
         - Key: environment
           Value: !Ref Environment
@@ -172,7 +188,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.0.49
+        SemanticVersion: 2.0.55
       NotificationARNs:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters:
@@ -185,7 +201,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.0.49
+        SemanticVersion: 2.0.55
       Parameters:
         TopicName: !Sub Deployment-createdby-${AWS::StackName}
       Tags:
