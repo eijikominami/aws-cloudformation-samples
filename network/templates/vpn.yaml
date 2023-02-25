@@ -27,21 +27,21 @@ Parameters:
   CustomerGatewayOutsideIpAddress:
     Type: String
     AllowedPattern: ^[0-9./]*$
-    Description: The Internet-routable IP address for the customer gateway's outside interface. [required]
+    Description: The Internet-routable IP address for the customer gateway's outside interface [required]
   StaticRoutesOnly:
     Type: String
     Default: false
     AllowedValues:
       - true
       - false
-    Description: Indicates whether the VPN connection uses static routes only. [required] 
+    Description: Indicates whether the VPN connection uses static routes only [required] 
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
-    Description: The IDs of one or more subnets. [required] 
+    Description: The IDs of one or more subnets [required] 
   VpcId:
     Type: AWS::EC2::VPC::Id
     AllowedPattern: .+
-    Description: The ID of the VPC. [required]
+    Description: The ID of the VPC [required]
   SNSForDeploymentArn:
     Type: String
     Default: ''

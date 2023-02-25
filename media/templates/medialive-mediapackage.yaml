@@ -159,7 +159,7 @@ Parameters:
   StartoverWindowSeconds:
     Type: Number
     Default: 0
-    Description: Maximum duration seconds of content to retain for startover playback. [required]
+    Description: Maximum duration seconds of content to retain for startover playback [required]
     MinValue: 0
   SegmentDurationSeconds:
     Type: String

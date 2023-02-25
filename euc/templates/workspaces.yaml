@@ -91,7 +91,7 @@ Parameters:
       - VPC_ONLY
       - VPC_DIRECTORY
       - VPC_DIRECTORY_WORKSPACES
-    Description: The scope of the deploy. Amazon Workspaces can be built after you register a directory manually. [required]
+    Description: The scope of the deploy. Amazon Workspaces can be built after you register a directory manually [required]
   BundleId:
     Type: String
     Default: wsb-w94f3tgkh
@@ -212,7 +212,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/availability-zone
-        SemanticVersion: 2.1.0
+        SemanticVersion: 2.1.1
       NotificationARNs:
         - !If
           - CreateSNSForDeployment
@@ -254,7 +254,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/availability-zone
-        SemanticVersion: 2.1.0
+        SemanticVersion: 2.1.1
       NotificationARNs:
         - !If
           - CreateSNSForDeployment
@@ -321,13 +321,47 @@ Resources:
           Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
+  FSxForWindows:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      NotificationARNs:
+        - !If
+          - CreateSNSForDeployment
+          - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
+          - !Ref SNSForDeploymentArn
+      Parameters: 
+        ActiveDirectoryId: !If
+          - CreateDirectory
+          - !GetAtt MicrosoftAD.Outputs.MicrosoftAdId
+          - !Ref ActiveDirectoryId
+        AZDeploymentMode: SINGLE_AZ_2
+        FSxThroughput: 16
+        PrimarySubnetAccess: !GetAtt Az1.Outputs.PrivateSubnetId
+        SourcePrefixListId: !Ref VPCCidrBlock
+        StorageCapacity: 1024
+        SubnetIds: !Join
+          - ','
+          - - !GetAtt Az1.Outputs.PrivateSubnetId
+            - !GetAtt Az2.Outputs.PrivateSubnetId
+        Environment: !Ref Environment
+        TagKey: !Ref TagKey
+        TagValue: !Ref TagValue
+      TemplateURL: !If
+        - Development
+        - https://s3.amazonaws.com/eijikominami-test/aws-cloudformation-templates/storage/fsx.yaml
+        - https://s3.amazonaws.com/eijikominami/aws-cloudformation-templates/storage/fsx.yaml
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
   SNSForAlert:
     Condition: CreateSNSForAlert
     Type: AWS::Serverless::Application
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.1.0
+        SemanticVersion: 2.1.1
       NotificationARNs:
         - !If
           - CreateSNSForDeployment
@@ -344,7 +378,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.1.0
+        SemanticVersion: 2.1.1
       Parameters:
         TopicName: !Sub Deployment-createdby-${AWS::StackName}
       Tags:
@@ -555,7 +589,7 @@ Resources:
           - !Ref SNSForDeploymentArn
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/cloudwatch-alarm-about-transitgateway-attachment
-        SemanticVersion: 2.1.0
+        SemanticVersion: 2.1.1
       Tags:
         environment: !Ref Environment
         createdby: !Ref TagValue
@@ -579,7 +613,7 @@ Resources:
           - !Ref SNSForDeploymentArn
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/cloudwatch-alarm-about-workspaces
-        SemanticVersion: 2.1.0
+        SemanticVersion: 2.1.1
       Tags:
         environment: !Ref Environment
         createdby: !Ref TagValue
