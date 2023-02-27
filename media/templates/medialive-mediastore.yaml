@@ -271,19 +271,20 @@ Resources:
         GopSize: !Ref GopSize
         H264Profile: !Ref H264Profile
         H264Level: !Ref H264Level
+        InputType: RTMP
+        InputStreamKey: !Ref StreamKey
+        InputWhitelistRules: !Ref WhitelistRules
         Height: !Ref Height
         MediaStoreEndpoint: !Select [ 1, !Split [ "//", !GetAtt MediaStore.Outputs.Endpoint ]]
         LogicalNamePrefix: !Ref AWS::StackName
         OutputType: MEDIA_STORE
-        RtmpUrl1: !Ref RtmpUrl1
-        RtmpStreamKey1: !Ref RtmpStreamKey1
-        RtmpUrl2: !Ref RtmpUrl2
-        RtmpStreamKey2: !Ref RtmpStreamKey2
-        StreamKey: !Ref StreamKey
+        OutputRtmpUrl1: !Ref RtmpUrl1
+        OutputRtmpStreamKey1: !Ref RtmpStreamKey1
+        OutputRtmpUrl2: !Ref RtmpUrl2
+        OutputRtmpStreamKey2: !Ref RtmpStreamKey2
         VideoBitrate: !Ref VideoBitrate
         VodSourceBucket: !Ref VodSourceBucket
         Width: !Ref Width
-        WhitelistRules: !Ref WhitelistRules
         SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
         SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
         Environment: !Ref Environment

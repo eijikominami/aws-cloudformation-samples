@@ -231,21 +231,22 @@ Resources:
         H264Profile: !Ref H264Profile
         H264Level: !Ref H264Level
         Height: !Ref Height
+        InputType: RTMP
+        InputStreamKey: !Ref StreamKey
+        InputWhitelistRules: !Ref WhitelistRules
         MediaPackageChannelId: !GetAtt MediaPackage.Outputs.ChannelId
         LogicalNamePrefix: !Ref AWS::StackName
         OutputType: MEDIA_PACKAGE
-        RtmpUrl1: !Ref RtmpUrl1
-        RtmpStreamKey1: !Ref RtmpStreamKey1
-        RtmpUrl2: !Ref RtmpUrl2
-        RtmpStreamKey2: !Ref RtmpStreamKey2
-        StreamKey: !Ref StreamKey
+        OutputRtmpUrl1: !Ref RtmpUrl1
+        OutputRtmpStreamKey1: !Ref RtmpStreamKey1
+        OutputRtmpUrl2: !Ref RtmpUrl2
+        OutputRtmpStreamKey2: !Ref RtmpStreamKey2
         VideoBitrate: !Ref VideoBitrate
         VodSourceBucket: !If
           - PlayOnMediaLive
           - !Ref VodSourceBucket
           - ''
         Width: !Ref Width
-        WhitelistRules: !Ref WhitelistRules
         SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
         SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
         Environment: !Ref Environment

@@ -6,11 +6,19 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups: 
       - Label: 
+          default: 'FSx Configuration'
+        Parameters: 
+          - FSxDeploymentMode
+          - FSxIngressCidrIp
+          - FSxStorageSize
+          - FSxThroughput
+      - Label: 
           default: 'Microsoft Active Directory Configuration'
         Parameters: 
           - ActiveDirectoryEdition
           - ActiveDirectoryEnableSso
-          - ActiveDirectoryId
+          - ActiveDirectoryIdForFSx
+          - ActiveDirectoryIdForWorkspaces
           - ActiveDirectoryName
           - ActiveDirectoryPassword
           - ActiveDirectoryShortName
@@ -29,14 +37,14 @@ Metadata:
       - Label: 
           default: 'Workspaces Configuration'
         Parameters: 
-          - Deploy
-          - BundleId
-          - ComputeTypeName
-          - RootVolumeSizeGib
-          - RunningMode
-          - RunningModeAutoStopTimeoutInMinutes
-          - UserName
-          - UserVolumeSizeGib
+          - WorkspacesDeploy
+          - WorkspacesBundleId
+          - WorkspacesComputeTypeName
+          - WorkspacesRootVolumeSizeGib
+          - WorkspacesRunningMode
+          - WorkspacesWorkspacesRunningModeAutoStopTimeoutInMinutes
+          - WorkspacesUserName
+          - WorkspacesUserVolumeSizeGib
       - Label: 
           default: 'Notification Configuration'
         Parameters: 
@@ -67,24 +75,25 @@ Parameters:
   ActiveDirectoryName:
     Type: String
     Default: corp.example.com
-    AllowedPattern: ^([a-zA-Z0-9]+[\\.-])+([a-zA-Z0-9])+$
     Description: The fully qualified domain name for the AWS Managed Microsoft AD directory [conditional]
   ActiveDirectoryPassword:
     Type: String
     Default: Password1+
-    AllowedPattern: (?=^.{8,64}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[^A-Za-z0-9\s])(?=.*[a-z])|(?=.*[^A-Za-z0-9\s])(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9\s]))^.*
     NoEcho: true
     Description: The password for the default administrative user named Admin [conditional]
   ActiveDirectoryShortName:
     Type: String
     Default: CORP
-    AllowedPattern: ^[^\\/:*?"<>|.]+[^\\/:*?"<>|]*$
     Description: The NetBIOS name for your domain [conditional]
-  ActiveDirectoryId:
+  ActiveDirectoryIdForFSx:
     Type: String
     Default: ''
-    Description: The identifier of the AWS Directory Service directory for the WorkSpace [conditional]
-  Deploy:
+    Description: The identifier of the AWS Directory Service directory for FSx [conditional]
+  ActiveDirectoryIdForWorkspaces:
+    Type: String
+    Default: ''
+    Description: The identifier of the AWS Directory Service directory for Workspaces [conditional]
+  WorkspacesDeploy:
     Type: String
     Default: VPC_DIRECTORY
     AllowedValues:
@@ -92,11 +101,11 @@ Parameters:
       - VPC_DIRECTORY
       - VPC_DIRECTORY_WORKSPACES
     Description: The scope of the deploy. Amazon Workspaces can be built after you register a directory manually [required]
-  BundleId:
+  WorkspacesBundleId:
     Type: String
     Default: wsb-w94f3tgkh
     Description: The identifier of the bundle for the WorkSpace [required]
-  ComputeTypeName:
+  WorkspacesComputeTypeName:
     Type: String
     Default: PERFORMANCE
     AllowedValues:
@@ -110,11 +119,46 @@ Parameters:
       - STANDARD
       - VALUE
     Description: The compute type [required]
-  RootVolumeSizeGib:
+  FSxDeploymentMode:
+    Type: String
+    Default: SINGLE_AZ_2
+    AllowedValues:
+      - NONE
+      - SINGLE_AZ_2
+      - MULTI_AZ_1
+    Description: Specifies the file system deployment type
+  FSxIngressCidrIp:
+    Type: String
+    Default: 0.0.0.0/0
+    Description: The IPv4 address range, in CIDR format
+  FSxStorageSize:
+    Type: Number
+    Default: 1024
+    MinValue: 32
+    MaxValue: 65536
+    Description: The storage capacity of the file system being created. 32 GiB - 65,536 GiB (64 TiB)
+  FSxThroughput:
+    Type: Number
+    AllowedValues:
+      - 8
+      - 16
+      - 32
+      - 64
+      - 128
+      - 256
+      - 512
+      - 1024
+      - 2048
+    Default: 16
+    Description: >
+      The throughput capacity of an Amazon FSx file system, measured in megabytes per second 
+      in powers of 2 (8, 16, 32, ... , 1024), with the recommended value based on the file 
+      system size: 8 for <800 GiB, 16 for <1600 GiB, ... 512 for <51200 GiB, 1024 for >=51200 GiB
+  WorkspacesRootVolumeSizeGib:
     Type: Number
     Default: 80
     Description: The size of the root volume [required]  
-  RunningMode:
+  WorkspacesRunningMode:
     Type: String
     Default: AUTO_STOP
     AllowedValues:
@@ -122,7 +166,7 @@ Parameters:
       - AUTO_STOP
       - MANUAL
     Description: The identifier of the bundle for the WorkSpace [required]
-  RunningModeAutoStopTimeoutInMinutes:
+  WorkspacesWorkspacesRunningModeAutoStopTimeoutInMinutes:
     Type: Number
     Default: 60
     Description: The time after a user logs off when WorkSpaces are automatically stopped [required]
@@ -160,12 +204,12 @@ Parameters:
     Type: String
     Default: ''
     Description: The IPv4 CIDR block forward to TransitGateway
-  UserName:
+  WorkspacesUserName:
     Type: String
     Default: unknown
     AllowedPattern: .+
     Description: The user name of the user for the WorkSpace [required]
-  UserVolumeSizeGib:
+  WorkspacesUserVolumeSizeGib:
     Type: Number
     Default: 100
     Description: The size of the user storage [required]  
@@ -197,13 +241,15 @@ Parameters:
     AllowedPattern: .+
 
 Conditions:
-  CreateDirectory: !And [ !Equals [ !Ref ActiveDirectoryId, ''], !Or [ !Equals [ !Ref Deploy, VPC_DIRECTORY], !Equals [ !Ref Deploy, VPC_DIRECTORY_WORKSPACES] ] ]
+  CreateDirectory: !And [ !Or [ !Equals [ !Ref ActiveDirectoryIdForFSx, ''], !Equals [ !Ref ActiveDirectoryIdForWorkspaces, ''] ], !Or [ !Equals [ !Ref WorkspacesDeploy, VPC_DIRECTORY], !Equals [ !Ref WorkspacesDeploy, VPC_DIRECTORY_WORKSPACES] ] ]
+  CreateFSx: !And [ !Not [ !Equals [ !Ref FSxDeploymentMode, NONE ] ], !Not [ !Equals [ !Ref WorkspacesDeploy, VPC_ONLY] ] ]
   CreateSNSForAlert: !Equals [ !Ref SNSForAlertArn, '']
   CreateSNSForDeployment: !Equals [ !Ref SNSForDeploymentArn, '']
   CreatePublicSubnet: !Or [ !Not [ !Equals [ !Ref SubnetPublicCidrBlockForAz1, ''] ], !Not [ !Equals [ !Ref SubnetPublicCidrBlockForAz2, ''] ] ]
-  CreateTransitGateway: !And [ !Not [ !Equals [ !Ref TransitGatewayId, '' ] ], !Not [ !Equals [ !Ref TransitGatewayDestinationCidrBlock, '' ] ] ]
-  CreateWorkspaces: !Equals [ !Ref Deploy, VPC_DIRECTORY_WORKSPACES]
+  CreateRouteTransit: !And [ !Not [ !Equals [ !Ref TransitGatewayId, '' ] ], !Not [ !Equals [ !Ref TransitGatewayDestinationCidrBlock, '' ] ] ]
+  CreateWorkspaces: !Equals [ !Ref WorkspacesDeploy, VPC_DIRECTORY_WORKSPACES]
   Development: !Equals [ !Ref Environment, development]
+  FSxMultiAz: !Equals [ !Ref Environment, MULTI_AZ_1]
 
 Resources:
   # Nested Stack
@@ -322,6 +368,7 @@ Resources:
         - Key: !Ref TagKey
           Value: !Ref TagValue
   FSxForWindows:
+    Condition: CreateFSx
     Type: AWS::CloudFormation::Stack
     Properties:
       NotificationARNs:
@@ -333,16 +380,20 @@ Resources:
         ActiveDirectoryId: !If
           - CreateDirectory
           - !GetAtt MicrosoftAD.Outputs.MicrosoftAdId
-          - !Ref ActiveDirectoryId
-        AZDeploymentMode: SINGLE_AZ_2
-        FSxThroughput: 16
+          - !Ref ActiveDirectoryIdForFSx
+        AZDeploymentMode: !Ref FSxDeploymentMode
+        FSxThroughput: !Ref FSxThroughput
+        IngressCidrIp: !Ref FSxIngressCidrIp
         PrimarySubnetAccess: !GetAtt Az1.Outputs.PrivateSubnetId
-        SourcePrefixListId: !Ref VPCCidrBlock
-        StorageCapacity: 1024
-        SubnetIds: !Join
-          - ','
-          - - !GetAtt Az1.Outputs.PrivateSubnetId
-            - !GetAtt Az2.Outputs.PrivateSubnetId
+        StorageCapacity: !Ref FSxStorageSize
+        SubnetIds: !If
+          - FSxMultiAz
+          - !Join
+            - ','
+            - - !GetAtt Az1.Outputs.PrivateSubnetId
+              - !GetAtt Az2.Outputs.PrivateSubnetId
+          - !GetAtt Az1.Outputs.PrivateSubnetId
+        VPCId: !Ref VPC
         Environment: !Ref Environment
         TagKey: !Ref TagKey
         TagValue: !Ref TagValue
@@ -459,7 +510,7 @@ Resources:
       NatGatewayId: !GetAtt Az2.Outputs.NatGatewayId
       RouteTableId: !GetAtt Az2.Outputs.RouteTableIdPrivate
   RoutePrivateToTransitGatewayAz1:
-    Condition: CreateTransitGateway
+    Condition: CreateRouteTransit
     DependsOn:
       - TransitGatewayAttachment
     Type: AWS::EC2::Route
@@ -471,7 +522,7 @@ Resources:
         - !GetAtt MicrosoftAD.Outputs.RouteTableIdPrivateAz1
         - !GetAtt Az1.Outputs.RouteTableIdPrivate
   RoutePrivateToTransitGatewayAz2:
-    Condition: CreateTransitGateway
+    Condition: CreateRouteTransit
     DependsOn:
       - TransitGatewayAttachment
     Type: AWS::EC2::Route
@@ -502,7 +553,7 @@ Resources:
       VpcId: !Ref VPC
   # Peering connections with Transit Gateway and VPC for outbound traffic
   TransitGatewayAttachment:
-    Condition: CreateTransitGateway
+    Condition: CreateRouteTransit
     Type: AWS::EC2::TransitGatewayAttachment
     Properties: 
       SubnetIds:
@@ -518,7 +569,7 @@ Resources:
       TransitGatewayId: !Ref TransitGatewayId
       VpcId: !Ref VPC
   RouteTransitToTransitGatewayAz1:
-    Condition: CreateTransitGateway
+    Condition: CreateRouteTransit
     DependsOn:
       - TransitGatewayAttachment
     Type: AWS::EC2::Route
@@ -527,7 +578,7 @@ Resources:
       TransitGatewayId: !Ref TransitGatewayId
       RouteTableId: !GetAtt Az1.Outputs.RouteTableIdTransit
   RouteTransitToTransitGatewayAz2:
-    Condition: CreateTransitGateway
+    Condition: CreateRouteTransit
     DependsOn:
       - TransitGatewayAttachment
     Type: AWS::EC2::Route
@@ -540,25 +591,25 @@ Resources:
     Condition: CreateWorkspaces
     Type: AWS::WorkSpaces::Workspace
     Properties: 
-      BundleId: !Ref BundleId
+      BundleId: !Ref WorkspacesBundleId
       DirectoryId: !If
         - CreateDirectory
         - !GetAtt MicrosoftAD.Outputs.MicrosoftAdId
-        - !Ref ActiveDirectoryId
+        - !Ref ActiveDirectoryIdForWorkspaces
       RootVolumeEncryptionEnabled: false
       Tags: 
         - Key: environment
           Value: !Ref Environment
         - Key: !Ref TagKey
           Value: !Ref TagValue
-      UserName: !Ref UserName
+      UserName: !Ref WorkspacesUserName
       UserVolumeEncryptionEnabled: false
       WorkspaceProperties: 
-        ComputeTypeName: !Ref ComputeTypeName
-        RootVolumeSizeGib: !Ref RootVolumeSizeGib
-        RunningMode: !Ref RunningMode
-        RunningModeAutoStopTimeoutInMinutes: !Ref RunningModeAutoStopTimeoutInMinutes
-        UserVolumeSizeGib: !Ref UserVolumeSizeGib
+        ComputeTypeName: !Ref WorkspacesComputeTypeName
+        RootVolumeSizeGib: !Ref WorkspacesRootVolumeSizeGib
+        RunningMode: !Ref WorkspacesRunningMode
+        RunningModeAutoStopTimeoutInMinutes: !Ref WorkspacesWorkspacesRunningModeAutoStopTimeoutInMinutes
+        UserVolumeSizeGib: !Ref WorkspacesUserVolumeSizeGib
   # CloudWatch
   CloudWatchLogsGroupForVPCFlowLog:
     Type: AWS::Logs::LogGroup
@@ -571,7 +622,7 @@ Resources:
         - Key: !Ref TagKey
           Value: !Ref TagValue
   CloudWatchAlarmTransitGatewayAttachment:
-    Condition: CreateTransitGateway
+    Condition: CreateRouteTransit
     Type: AWS::Serverless::Application
     Properties:
       Parameters:
@@ -594,6 +645,7 @@ Resources:
         environment: !Ref Environment
         createdby: !Ref TagValue
   CloudWatchAlarmWorkspaces:
+    Condition: CreateWorkspaces
     Type: AWS::Serverless::Application
     Properties:
       Parameters:
@@ -601,7 +653,7 @@ Resources:
         DirectoryId: !If
           - CreateDirectory
           - !GetAtt MicrosoftAD.Outputs.MicrosoftAdId
-          - !Ref ActiveDirectoryId
+          - !Ref ActiveDirectoryIdForWorkspaces
         SNSTopicArn: !If 
           - CreateSNSForAlert
           - !GetAtt SNSForAlert.Outputs.SNSTopicArn
@@ -621,10 +673,10 @@ Resources:
 Outputs:
   DirectoryId:
     Description: The logical id of the Active Directory
-    Value: !If
+    Value: !If 
       - CreateDirectory
       - !GetAtt MicrosoftAD.Outputs.MicrosoftAdId
-      - !Ref ActiveDirectoryId
+      - ''
   VpcId:
     Description: The logical id of the VPC
     Value: !Ref VPC
