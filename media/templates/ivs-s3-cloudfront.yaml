@@ -6,23 +6,23 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups: 
       - Label: 
+          default: 'IVS Configuration'
+        Parameters: 
+          - IVSAuthorized
+          - IVSLatencyMode
+          - IVSType
+      - Label: 
           default: 'CloudFront Configuration'
         Parameters: 
           - CloudFrontDefaultTTL
           - CloudFrontMinimumTTL
           - CloudFrontMaximumTTL
           - CloudFrontOriginShield
-      - Label: 
-          default: 'IVS Configuration'
-        Parameters: 
-          - IVSAuthorized
-          - IVSLatencyMode
-          - IVSType
       - Label:
-          default: 'Slack Configuration'      
+          default: 'Slack Configuration'
         Parameters: 
+          - SlackWorkspaceId
           - SlackChannelId
-          - SlackWorkspaceId     
       - Label: 
           default: 'Tag Configuration'
         Parameters:
@@ -157,6 +157,7 @@ Resources:
         SlackChannelIdForAlert: !Ref SlackChannelId
         SlackWorkspaceId: !Ref SlackWorkspaceId
         SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
+        TagEventsRule: DISABLED
       TemplateURL: !If
         - Development
         - https://eijikominami-test.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/notification/packaged.yaml

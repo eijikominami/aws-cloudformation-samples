@@ -11,13 +11,23 @@ This is a sample template about ``AWS Media Services``.
 └── README.md                   <-- This instructions file
 ```
 
+## Preparation
+
+**This template requires some setup to be done in the AWS Chatbot console.** To provide the required Slack workspace ID, you must perform the initial authorization flow with Slack in the AWS Chatbot console, then copy and paste the workspace ID from the console. For more details, see steps 1-4 in [Setting Up AWS Chatbot with Slack](https://docs.aws.amazon.com/chatbot/latest/adminguide/setting-up.html#Setup_intro) in the ``AWS Chatbot User Guide``. 
+
+![](images/setup_chatbot_1.png)
+
+@aws must be invited to Slack private channels.
+
+> /invite @aws
+
 ## QuickStart
 
 Click the following button to deploy the project.
 
 | Template Name | AWS Region | Launch |
 | --- | --- | --- |
-| Live streaming using IVS | us-east-1 | [![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?stackName=IVS-WebsiteHosting&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/media/ivs-s3-cloudfront.yaml) |
+| Live streaming using IVS | ap-northeast-1 | [![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/quickcreate?stackName=IVS-WebsiteHosting&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/media/ivs-s3-cloudfront.yaml) |
 | Live streaming using MediaPackage | ap-northeast-1 | [![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/quickcreate?stackName=MediaLiveToMediaPackage&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/media/medialive-mediapackage.yaml) |
 | Live streaming using MediaStore | ap-northeast-1 | [![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/quickcreate?stackName=MediaLiveToMediaStore&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/media/medialive-mediastore.yaml) |
 | Live streaming using S3 | ap-northeast-1 | [![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/quickcreate?stackName=MediaLiveToMediaS3&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/media/medialive-s3.yaml) |
@@ -36,6 +46,8 @@ aws cloudformation deploy --template-file medialive-S3.yaml --stack-name MediaLi
 ## Architecture
 
 The following sections describe the individual components of the architecture.
+
+![](images/architecture-ivs-s3-cloudfront.png)
 
 ![](images/architecture-medialive-mediapackage.png)
 

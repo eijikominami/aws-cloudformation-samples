@@ -6,20 +6,13 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label: 
-          default: 'CloudFront Configuration'
-        Parameters: 
-          - CloudFrontDefaultTTL
-          - CloudFrontMinimumTTL
-          - CloudFrontMaximumTTL
-          - CloudFrontOriginShield
-      - Label: 
-          default: 'Live Source Configuration'
-        Parameters: 
+          default: 'MediaLive Input Configuration'
+        Parameters:
+          - InputType
+          - ElementalLinkId1
+          - ElementalLinkId2
           - StreamKey
-      - Label: 
-          default: 'VOD Source Configuration'
-        Parameters: 
-          - VodSourceBucket 
+          - VodSourceBucket
       - Label: 
           default: 'MediaLive Configuration'
         Parameters: 
@@ -50,6 +43,18 @@ Metadata:
           - RtmpStreamKey1
           - RtmpUrl2
           - RtmpStreamKey2
+      - Label: 
+          default: 'CloudFront Configuration'
+        Parameters: 
+          - CloudFrontDefaultTTL
+          - CloudFrontMinimumTTL
+          - CloudFrontMaximumTTL
+          - CloudFrontOriginShield
+      - Label:
+          default: 'Slack Configuration'
+        Parameters: 
+          - SlackWorkspaceId
+          - SlackChannelId
       - Label: 
           default: 'Tag Configuration'
         Parameters:
@@ -98,6 +103,14 @@ Parameters:
       - true
       - false
     Description: A flag that specifies whether Origin Shield is enabled [required]
+  ElementalLinkId1:
+    Type: String
+    Default: ''
+    Description: The unique ID for the Elemental Link device [conditional]  
+  ElementalLinkId2:
+    Type: String
+    Default: ''
+    Description: The unique ID for the Elemental Link device [conditional]
   FramerateDenominator:
     Type: Number
     Default: 1001
@@ -151,6 +164,14 @@ Parameters:
     Type: Number
     Default: 540
     Description: Output video height, in pixels [required]
+  InputType:
+    Type: String
+    Default: RTMP
+    AllowedValues:
+      - RTMP
+      - ELEMENTAL_LINK
+      - S3
+    Description: The input type [required]
   MediaTailorAdDecisionServerUrl:
     Type: String
     Default: ''
@@ -168,27 +189,35 @@ Parameters:
   MediaTailorSlateAdUrl: 
     Type: String
     Default: ''
-    Description: The URL for a high-quality video asset to transcode and use to fill in time that's not used by ads. MediaTailor shows the slate to fill in gaps in media content [required]
+    Description: The URL for a high-quality video asset to transcode and use to fill in time that's not used by ads. MediaTailor shows the slate to fill in gaps in media content
   RtmpUrl1:
     Type: String
     Default: ''
-    Description: The rtmp url a stream sends to.
+    Description: The rtmp url a stream sends to
   RtmpStreamKey1:
     Type: String
     Default: ''
-    Description: The rtmp stream name a stream sends to.
+    Description: The rtmp stream name a stream sends to
   RtmpUrl2:
     Type: String
     Default: ''
-    Description: The rtmp url a stream sends to.
+    Description: The rtmp url a stream sends to
   RtmpStreamKey2:
     Type: String
     Default: ''
-    Description: The rtmp stream name a stream sends to.
+    Description: The rtmp stream name a stream sends to
+  SlackChannelId:
+    Type: String
+    Default: ''
+    Description: Slack Channel Id
+  SlackWorkspaceId:
+    Type: String
+    Default: ''
+    Description: Slack Workspace Id
   StreamKey:
     Type: String
     Default: stream
-    Description: A unique name for the location the RTMP stream is being pushed to [required]
+    Description: A unique name for the location the RTMP stream is being pushed to [conditional]
   VideoBitrate:
     Type: Number
     Default: 2200000
@@ -196,7 +225,7 @@ Parameters:
   VodSourceBucket:
     Type: String
     Default: ''
-    Description: The S3 bucket Name VOD contents exist
+    Description: The S3 bucket Name VOD contents exist [conditional]  
   Width:
     Type: Number
     Default: 960
@@ -224,6 +253,7 @@ Parameters:
 
 Conditions:
   CreateMediaTailor: !And [ !Not [ !Equals [ !Ref MediaTailorAdDecisionServerUrl, '' ] ], !Not [ !Equals [ !Ref MediaTailorSlateAdUrl, '' ] ] ]
+  CreateSlack: !And [ !Not [ !Equals [ !Ref SlackChannelId, '' ] ], !Not [ !Equals [ !Ref SlackWorkspaceId, '' ] ] ]
   Development: !Equals [ !Ref Environment, development]
 
 Resources:
@@ -241,6 +271,8 @@ Resources:
         AutoInputFailover: !Ref AutoInputFailover
         AudioBitrate: !Ref AudioBitrate
         ChannelClass: !Ref ChannelClass
+        ElementalLinkId1: !Ref ElementalLinkId1
+        ElementalLinkId2: !Ref ElementalLinkId2
         FramerateDenominator: !Ref FramerateDenominator
         FramerateNumerator: !Ref FramerateNumerator
         GopNumBFrames: !Ref GopNumBFrames
@@ -248,7 +280,7 @@ Resources:
         H264Profile: !Ref H264Profile
         H264Level: !Ref H264Level
         Height: !Ref Height
-        InputType: RTMP
+        InputType: !Ref InputType
         InputStreamKey: !Ref StreamKey
         InputWhitelistRules: !Ref WhitelistRules
         LogicalNamePrefix: !Ref AWS::StackName
@@ -328,6 +360,26 @@ Resources:
         - Development
         - https://eijikominami-test.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/static-website-hosting-with-ssl/template.yaml
         - https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/static-website-hosting-with-ssl/template.yaml
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+  Slack:
+    Condition: CreateSlack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      NotificationARNs:
+        - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
+      Parameters:
+        SlackChannelIdForAlert: !Ref SlackChannelId
+        SlackWorkspaceId: !Ref SlackWorkspaceId
+        SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
+        TagEventsRule: DISABLED
+      TemplateURL: !If
+        - Development
+        - https://eijikominami-test.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/notification/packaged.yaml
+        - https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/notification/packaged.yaml
       Tags:
         - Key: environment
           Value: !Ref Environment
