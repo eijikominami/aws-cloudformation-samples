@@ -248,12 +248,12 @@ Resources:
         H264Profile: !Ref H264Profile
         H264Level: !Ref H264Level
         Height: !Ref Height
-        HlsBucket: !Sub medialive-${AWS::AccountId}
         InputType: RTMP
         InputStreamKey: !Ref StreamKey
         InputWhitelistRules: !Ref WhitelistRules
         LogicalNamePrefix: !Ref AWS::StackName
         OutputType: S3
+        OutputHlsBucket: !Sub medialive-${AWS::AccountId}
         OutputRtmpUrl1: !Ref RtmpUrl1
         OutputRtmpStreamKey1: !Ref RtmpStreamKey1
         OutputRtmpUrl2: !Ref RtmpUrl2
@@ -338,7 +338,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.1.1
+        SemanticVersion: 2.1.3
       NotificationARNs:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters:
@@ -351,7 +351,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.1.1
+        SemanticVersion: 2.1.3
       Parameters:
         TopicName: !Sub Deployment-createdby-${AWS::StackName}
       Tags:
