@@ -13,7 +13,7 @@ Metadata:
     - dynamodb
     - lambda
     HomePageUrl: https://github.com/eijikominami/
-    SemanticVersion: 2.0.7
+    SemanticVersion: 2.1.3
     SourceCodeUrl: https://github.com/eijikominami/aws-cloudformation-samples/tree/master/three-tier-app/sam-app/
 Globals:
   Function:
@@ -23,8 +23,8 @@ Globals:
           Ref: DynamoDBData
     Handler: lambda_function.lambda_handler
     Layers:
-    - !Sub arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:2
-    Runtime: python3.9
+    - Fn::Sub: arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension-Arm64:2
+    Runtime: python3.10
     Tracing: Active
 Parameters:
   AccessControlAllowOrigin:
@@ -52,18 +52,25 @@ Parameters:
     MinValue: 1
     MaxValue: 1000
     Description: Batch Size in Lambda
+  Environment:
+    Type: String
+    Default: development
+    AllowedValues:
+    - production
+    - test
+    - development
   TagKey:
     Type: String
     Default: createdby
   TagValue:
     Type: String
-    Default: aws-cloudformation-samples 
+    Default: aws-cloudformation-samples
 Resources:
   IAMRoleForAPIGatewayAccessToCloudWatchLogs:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: 2012-10-17
+        Version: '2012-10-17'
         Statement:
         - Effect: Allow
           Principal:
@@ -73,17 +80,22 @@ Resources:
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
       RoleName:
-        !Sub ThreeTierApp-SAM-APIGateway-CloudWatch-${AWS::Region}
+        Fn::Sub: ThreeTierApp-SAM-APIGateway-CloudWatch-${AWS::Region}
       Tags:
+      - Key: environment
+        Value:
+          Ref: Environment
       - Key:
           Ref: TagKey
         Value:
           Ref: TagValue
+    Metadata:
+      SamResourceId: IAMRoleForAPIGatewayAccessToCloudWatchLogs
   IAMRoleForAPIGatewayInvokeFunctionLambda:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: 2012-10-17
+        Version: '2012-10-17'
         Statement:
         - Effect: Allow
           Principal:
@@ -92,26 +104,31 @@ Resources:
       Description: API Gateway to invoke Lambda.
       Policies:
       - PolicyName:
-          !Sub ThreeTierApp-SAM-APIGatewayInvokeFunctionLambda-${AWS::Region}
+          Fn::Sub: ThreeTierApp-SAM-APIGatewayInvokeFunctionLambda-${AWS::Region}
         PolicyDocument:
-          Version: 2012-10-17
+          Version: '2012-10-17'
           Statement:
           - Effect: Allow
             Action:
             - lambda:InvokeFunction
             Resource: '*'
       RoleName:
-        !Sub ThreeTierApp-SAM-APIGateway-Lambda-${AWS::Region}
+        Fn::Sub: ThreeTierApp-SAM-APIGateway-Lambda-${AWS::Region}
       Tags:
+      - Key: environment
+        Value:
+          Ref: Environment
       - Key:
           Ref: TagKey
         Value:
           Ref: TagValue
+    Metadata:
+      SamResourceId: IAMRoleForAPIGatewayInvokeFunctionLambda
   IAMRoleForAPIGatewayAccessToKinesis:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: 2012-10-17
+        Version: '2012-10-17'
         Statement:
         - Effect: Allow
           Principal:
@@ -120,9 +137,9 @@ Resources:
       Description: API Gateway to access Kinesis.
       Policies:
       - PolicyName:
-          !Sub ThreeTierApp-SAM-APIGatewayAccessToKinesis-${AWS::Region}
+          Fn::Sub: ThreeTierApp-SAM-APIGatewayAccessToKinesis-${AWS::Region}
         PolicyDocument:
-          Version: 2012-10-17
+          Version: '2012-10-17'
           Statement:
           - Effect: Allow
             Action:
@@ -133,17 +150,22 @@ Resources:
               - Kinesis
               - Arn
       RoleName:
-        !Sub ThreeTierApp-SAM-APIGateway-Kinesis-${AWS::Region}
+        Fn::Sub: ThreeTierApp-SAM-APIGateway-Kinesis-${AWS::Region}
       Tags:
+      - Key: environment
+        Value:
+          Ref: Environment
       - Key:
           Ref: TagKey
         Value:
           Ref: TagValue
+    Metadata:
+      SamResourceId: IAMRoleForAPIGatewayAccessToKinesis
   IAMRoleForLambda:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: 2012-10-17
+        Version: '2012-10-17'
         Statement:
         - Effect: Allow
           Principal:
@@ -156,9 +178,9 @@ Resources:
       - arn:aws:iam::aws:policy/AmazonKinesisReadOnlyAccess
       Policies:
       - PolicyName:
-          !Sub ThreeTierApp-SAM-AWSLambdaBasicExecutionRole-${AWS::Region}
+          Fn::Sub: ThreeTierApp-SAM-AWSLambdaBasicExecutionRole-${AWS::Region}
         PolicyDocument:
-          Version: 2012-10-17
+          Version: '2012-10-17'
           Statement:
           - Effect: Allow
             Action:
@@ -178,12 +200,17 @@ Resources:
             - cloudwatch:PutMetricData
             Resource: '*'
       RoleName:
-        !Sub ThreeTierApp-SAM-ExecuteLambda-${AWS::Region}
+        Fn::Sub: ThreeTierApp-SAM-ExecuteLambda-${AWS::Region}
       Tags:
+      - Key: environment
+        Value:
+          Ref: Environment
       - Key:
           Ref: TagKey
         Value:
           Ref: TagValue
+    Metadata:
+      SamResourceId: IAMRoleForLambda
   ApiAccount:
     Type: AWS::ApiGateway::Account
     Properties:
@@ -191,6 +218,8 @@ Resources:
         Fn::GetAtt:
         - IAMRoleForAPIGatewayAccessToCloudWatchLogs
         - Arn
+    Metadata:
+      SamResourceId: ApiAccount
   Api:
     Type: AWS::Serverless::Api
     Properties:
@@ -255,22 +284,22 @@ Resources:
                   - IAMRoleForAPIGatewayAccessToKinesis
                   - Arn
                 uri:
-                  !Sub arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:kinesis:action/PutRecord
                 responses:
                   '200':
                     statusCode: '200'
                     responseParameters:
                       method.response.header.Access-Control-Expose-Headers:
-                        !Sub '''${AccessControlExposeHeaders}'''
+                        Fn::Sub: '''${AccessControlExposeHeaders}'''
                       method.response.header.Access-Control-Allow-Origin:
-                        !Sub '''${AccessControlAllowOrigin}'''
+                        Fn::Sub: '''${AccessControlAllowOrigin}'''
                   default:
                     statusCode: '500'
                     responseParameters:
                       method.response.header.Access-Control-Expose-Headers:
-                        !Sub '''${AccessControlExposeHeaders}'''
+                        Fn::Sub: '''${AccessControlExposeHeaders}'''
                       method.response.header.Access-Control-Allow-Origin:
-                        !Sub '''${AccessControlAllowOrigin}'''
+                        Fn::Sub: '''${AccessControlAllowOrigin}'''
                 passthroughBehavior: when_no_templates
                 httpMethod: POST
                 requestTemplates:
@@ -305,11 +334,11 @@ Resources:
                     statusCode: '200'
                     responseParameters:
                       method.response.header.Access-Control-Expose-Headers:
-                        !Sub '''${AccessControlExposeHeaders}'''
+                        Fn::Sub: '''${AccessControlExposeHeaders}'''
                       method.response.header.Access-Control-Allow-Methods: '''POST,GET,OPTIONS'''
                       method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
                       method.response.header.Access-Control-Allow-Origin:
-                        !Sub '''${AccessControlAllowOrigin}'''
+                        Fn::Sub: '''${AccessControlAllowOrigin}'''
                 passthroughBehavior: when_no_match
                 requestTemplates:
                   application/json: '{"statusCode": 200}'
@@ -399,6 +428,8 @@ Resources:
       TracingEnabled: true
       Variables:
         alias: Prod
+    Metadata:
+      SamResourceId: Api
   Kinesis:
     Type: AWS::Kinesis::Stream
     Properties:
@@ -412,10 +443,15 @@ Resources:
       ShardCount:
         Ref: KinesisStreamShardCount
       Tags:
+      - Key: environment
+        Value:
+          Ref: Environment
       - Key:
           Ref: TagKey
         Value:
           Ref: TagValue
+    Metadata:
+      SamResourceId: Kinesis
   DynamoDBData:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -434,16 +470,21 @@ Resources:
         SSEEnabled: true
       TableName: ThreeTierApp-SAM-data
       Tags:
+      - Key: environment
+        Value:
+          Ref: Environment
       - Key:
           Ref: TagKey
         Value:
           Ref: TagValue
+    Metadata:
+      SamResourceId: DynamoDBData
   LambdaPutData:
     Type: AWS::Serverless::Function
     Properties:
       Architectures:
-        - arm64
-      CodeUri: s3://eijikominami/aws-cloudformation-samples/three-tier-app/4a419b5a675cc1719ab8ec2d7ea3ebc9
+      - arm64
+      CodeUri: s3://eijikominami/aws-cloudformation-samples/three-tier-app/9a5e5dd2308a2f13d93ab21db32096e5
       Description: "\u30C7\u30FC\u30BF\u3092Kinesis\u304B\u3089\u53D6\u5F97\u3057\
         DynamoDB\u306B\u66F8\u304D\u8FBC\u307F\u307E\u3059"
       Events:
@@ -465,12 +506,16 @@ Resources:
         - IAMRoleForLambda
         - Arn
       Timeout: 30
+    Metadata:
+      SamResourceId: LambdaPutData
   LambdaGetData:
+    DependsOn:
+    - CloudWatchLogsGroupForApiGateway
     Type: AWS::Serverless::Function
     Properties:
       Architectures:
-        - arm64
-      CodeUri: s3://eijikominami/aws-cloudformation-samples/three-tier-app/69785d8c2e8d0d676906f40e5dcf27fd
+      - arm64
+      CodeUri: s3://eijikominami/aws-cloudformation-samples/three-tier-app/41bcf73da98027b7bec5a3ad07a25198
       Description: "\u30C7\u30FC\u30BF\u3092DynamoDB\u304B\u3089\u53D6\u5F97\u3057\
         API Gateway\u306B\u8FD4\u5374\u3057\u307E\u3059"
       Environment:
@@ -486,13 +531,17 @@ Resources:
         - IAMRoleForLambda
         - Arn
       Timeout: 30
+    Metadata:
+      SamResourceId: LambdaGetData
   CloudWatchLogsGroupForApiGateway:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: /aws/apigateway/ThreeTierApp-SAM
       RetentionInDays: 365
+    Metadata:
+      SamResourceId: CloudWatchLogsGroupForApiGateway
 Outputs:
   APIGatewayEndpointURL:
     Description: API Gateway Endpoint URL
     Value:
-      !Sub ${Api}.execute-api.${AWS::Region}.amazonaws.com
+      Fn::Sub: ${Api}.execute-api.${AWS::Region}.amazonaws.com

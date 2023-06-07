@@ -198,7 +198,7 @@ Resources:
         - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV2-Arm64:12
       MemorySize: 128
       Role: !GetAtt IAMRoleForLambda.Arn
-      Runtime: python3.9
+      Runtime: python3.10
       Timeout: 30
       TracingConfig: 
         Mode: Active

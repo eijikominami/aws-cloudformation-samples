@@ -42,9 +42,8 @@ Parameters:
     Default: '17:00'  
     Description: Daily Snapshot time (HH:MM)
   EC2ImageId:
-    Type: AWS::EC2::Image::Id
-    Default: ami-072bfb8ae2c884cc4
-    AllowedPattern: ^ami-.+$
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
     Description: The EC2 Image Id [required]
   Email:
     Type: String
