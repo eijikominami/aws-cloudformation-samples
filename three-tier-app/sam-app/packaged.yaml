@@ -13,7 +13,7 @@ Metadata:
     - dynamodb
     - lambda
     HomePageUrl: https://github.com/eijikominami/
-    SemanticVersion: 2.1.3
+    SemanticVersion: 2.1.4
     SourceCodeUrl: https://github.com/eijikominami/aws-cloudformation-samples/tree/master/three-tier-app/sam-app/
 Globals:
   Function:
