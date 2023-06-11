@@ -1,8 +1,38 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: (SO0153) - aws-edit-in-the-cloud v2.3.1
+Description: AWSCloudFormationSamples/media/gpu-ec2 creates an environment for editing, live switching using a GPU instance.
+
+Metadata: 
+  AWS::CloudFormation::Interface:
+    ParameterGroups: 
+      - Label: 
+          default: 'EC2 Configuration'
+        Parameters: 
+          - EC2ImageId
+          - EC2KeyName
+          - EC2InstanceType
+          - EC2VolumeSize
+          - HostAccessCIDR
+      - Label: 
+          default: 'EC2 Configuration'
+        Parameters: 
+          - SubnetPublicCidrBlockForAz1
+          - SubnetPrivateCidrBlockAz1
+          - SubnetPublicCidrBlockForAz2
+          - SubnetPrivateCidrBlockAz2
+          - VPCCidrBlock
+      - Label: 
+          default: 'Tag Configuration'
+        Parameters:
+          - Environment 
+          - TagKey
+          - TagValue
 
 Parameters:
+  EC2ImageId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-windows-latest/Windows_Server-2019-English-Full-Base
+    Description: The EC2 Image Id [required]
   EC2KeyName:
     Type: String
     Default: ''
@@ -46,9 +76,6 @@ Parameters:
     Default: 10.0.0.0/16
     AllowedPattern: ^[0-9./]*$
     Description: The VPC CIDR block [required]
-  Windows2019AmiId:
-    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: '/aws/service/ami-windows-latest/Windows_Server-2019-English-Full-Base'
   Environment:
     Type: String
     Default: production
@@ -126,7 +153,7 @@ Resources:
               Service: ec2.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonSSMDirectoryServiceAccess
+        - arn:aws:iam::aws:policy/service-role/AmazonSSMMaintenanceWindowRole
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
       Description: A role required for GPU instances.
       Policies:
@@ -135,7 +162,7 @@ Resources:
             Statement:
               - Action:
                   - s3:GetObject
-                Resource: arn:aws:s3:::solutions/aws-edit-in-the-cloud/v2.3.1*
+                Resource: !Sub arn:aws:s3:::solutions-${AWS::Region}/aws-edit-in-the-cloud/v2.3.2*
                 Effect: Allow
               - Action:
                   - s3:ListBucket
@@ -149,7 +176,11 @@ Resources:
                   - s3:GetObject
                 Resource: !Sub arn:aws:s3:::dcv-license.${AWS::Region}/*
                 Effect: Allow
-          PolicyName: aws-s3-policy
+              - Action:
+                  - s3:GetObject
+                Resource: !Sub arn:aws:s3:::eijikominami/aws-cloudformation-samples/media/*
+                Effect: Allow
+          PolicyName: S3
       RoleName: !Sub ${AWS::StackName}-AWSEC2Role-${AWS::Region}
   # InstanceProfile
   IamInstanceProfileForIAMRoleForEC2:
@@ -212,13 +243,15 @@ Resources:
           type: S3
           roleName: !Ref IAMRoleForEC2
           buckets:
-            - solutions
+            - !Sub solutions-${AWS::Region}
+            - !Sub eijikominami
       AWS::CloudFormation::Init:
         configSets:
           config:
             - setup
             - configInstance
             - installNICEDCV
+            - installAdditionalPackages
             - finalize
         setup:
           services:
@@ -228,10 +261,10 @@ Resources:
                 enabled: 'true'
           files:
             C:\cfn\scripts\Unzip-Archive.ps1:
-              source: !Sub 'https://solutions.s3.${AWS::Region}.${AWS::URLSuffix}/aws-edit-in-the-cloud/v2.3.1/Unzip-Archive.ps1'
+              source: !Sub 'https://solutions-${AWS::Region}.s3.${AWS::URLSuffix}/aws-edit-in-the-cloud/v2.3.2/Unzip-Archive.ps1'
               authentication: S3AccessCreds
             C:\cfn\modules\AWSQuickStart.zip:
-              source: !Sub 'https://solutions.s3.${AWS::Region}.${AWS::URLSuffix}/aws-edit-in-the-cloud/v2.3.1/AWSQuickStart.zip'
+              source: !Sub 'https://solutions-${AWS::Region}.s3.${AWS::URLSuffix}/aws-edit-in-the-cloud/v2.3.2/AWSQuickStart.zip'
               authentication: S3AccessCreds
           commands:
             a-set-execution-policy:
@@ -254,11 +287,20 @@ Resources:
         configInstance:
           files:
             C:\cfn\scripts\install-packages.ps1:
-              source: !Sub 'https://solutions.s3.${AWS::Region}.${AWS::URLSuffix}/aws-edit-in-the-cloud/v2.3.1/install-packages.ps1'
+              source: !Sub 'https://solutions-${AWS::Region}.s3.${AWS::URLSuffix}/aws-edit-in-the-cloud/v2.3.2/install-packages.ps1'
               authentication: S3AccessCreds
             C:\cfn\scripts\install-gpu-drivers.ps1:
-              source: !Sub 'https://solutions.s3.${AWS::Region}.${AWS::URLSuffix}/aws-edit-in-the-cloud/v2.3.1/install-gpu-drivers.ps1'
+              source: !Sub 'https://solutions-${AWS::Region}.s3.${AWS::URLSuffix}/aws-edit-in-the-cloud/v2.3.2/install-gpu-drivers.ps1'
               authentication: S3AccessCreds
+            C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\automount.bat:
+              content: !Sub |
+                    @echo OFF
+
+                    if NOT "%username%" == "Administrator" (
+                      
+                    ) else (
+                      echo Administrator Login - No network mounts
+                    ) 
           commands:
             '01-install-packages':
               command: 'powershell.exe -ExecutionPolicy Unrestricted C:\cfn\scripts\install-packages.ps1 -Verbose'
@@ -272,7 +314,7 @@ Resources:
         installNICEDCV:
           files: 
             C:\cfn\scripts\install-nicedcv.ps1:
-              source: !Sub 'https://solutions.s3.${AWS::Region}.${AWS::URLSuffix}/aws-edit-in-the-cloud/v2.3.1/install-nicedcv.ps1'
+              source: !Sub 'https://solutions-${AWS::Region}.s3.${AWS::URLSuffix}/aws-edit-in-the-cloud/v2.3.2/install-nicedcv.ps1'
               authentication: S3AccessCreds
             C:\Program Files\NICE\DCV\Server\conf\console-permissions.txt:
               content: |
@@ -283,15 +325,24 @@ Resources:
             '01-install-nicedcv':
               command: 'powershell.exe -ExecutionPolicy Unrestricted C:\cfn\scripts\install-nicedcv.ps1 -Verbose'
               waitAfterCompletion: '0'
+        installAdditionalPackages:
+          files:
+            C:\cfn\scripts\install-additional-Packages.ps1:
+              source: !Sub 'https://eijikominami.s3.${AWS::URLSuffix}/aws-cloudformation-samples/media/install-additional-Packages.ps1'
+              authentication: S3AccessCreds  
+          commands:
+            '01-install-additional-packages':
+              command: 'powershell.exe -ExecutionPolicy Unrestricted C:\cfn\scripts\install-additional-Packages.ps1 -Verbose'
+              waitAfterCompletion: '0'  
         restartComputer:
           files:
             C:\cfn\scripts\Restart-Computer.ps1:
-              source: !Sub 'https://solutions.s3.${AWS::Region}.${AWS::URLSuffix}/aws-edit-in-the-cloud/v2.3.1/Restart-Computer.ps1'
+              source: !Sub 'https://solutions-${AWS::Region}.s3.${AWS::URLSuffix}/aws-edit-in-the-cloud/v2.3.2/Restart-Computer.ps1'
               authentication: S3AccessCreds
           commands:
             '01-restart-computer':
               command: 'powershell.exe -ExecutionPolicy Unrestricted C:\cfn\scripts\Restart-Computer.ps1'
-              waitAfterCompletion: forever
+              waitAfterCompletion: forever    
         finalize:
           commands:
             1-signal-success:
@@ -307,10 +358,10 @@ Resources:
             VolumeType: gp3
       IamInstanceProfile: !Ref IamInstanceProfileForIAMRoleForEC2
       InstanceType: !Ref EC2InstanceType
-      ImageId: !Ref Windows2019AmiId
+      ImageId: !Ref EC2ImageId
       Tags:
         - Key: Name
-          Value: win-host
+          Value: !Sub ec2-${AWS::StackName}-${AWS::Region}
       Monitoring: true
       ## Removed so that CFN can rollback successfully 
       # DisableApiTermination: true
@@ -331,10 +382,6 @@ Resources:
             - !Ref 'AWS::Region'
             - "\n"
             - "</script>\n"
-    CreationPolicy:
-      ResourceSignal:
-        Count: 1
-        Timeout: PT15M
   # Security Group
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
