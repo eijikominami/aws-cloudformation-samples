@@ -268,9 +268,9 @@ Resources:
         MediaPackageChannelId: !GetAtt MediaPackage.Outputs.ChannelId
         LogicalNamePrefix: !Ref AWS::StackName
         OutputType: MEDIA_PACKAGE
-        OutputRtmpUrl1: !Ref RtmpUrl1
+        OutputRtmpRtpUrl1: !Ref RtmpUrl1
         OutputRtmpStreamKey1: !Ref RtmpStreamKey1
-        OutputRtmpUrl2: !Ref RtmpUrl2
+        OutputRtmpRtpUrl2: !Ref RtmpUrl2
         OutputRtmpStreamKey2: !Ref RtmpStreamKey2
         VideoBitrate: !Ref VideoBitrate
         VodSourceBucket: !If
@@ -347,7 +347,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.1.8
+        SemanticVersion: 2.1.9
       NotificationARNs:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters:
@@ -360,7 +360,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.1.8
+        SemanticVersion: 2.1.9
       Parameters:
         TopicName: !Sub Deployment-createdby-${AWS::StackName}
       Tags:
