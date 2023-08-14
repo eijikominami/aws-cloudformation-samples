@@ -537,7 +537,7 @@ Resources:
       Handler: index.lambda_handler
       MemorySize: 128
       Role: !GetAtt IAMRoleForLambda.Arn
-      Runtime: python3.11
+      Runtime: python3.9
       Timeout: 30
       TracingConfig: 
         Mode: Active
@@ -684,7 +684,7 @@ Resources:
       Handler: index.lambda_handler
       MemorySize: 128
       Role: !GetAtt IAMRoleForLambda.Arn
-      Runtime: python3.11
+      Runtime: python3.9
       Timeout: 30
       TracingConfig: 
         Mode: Active
