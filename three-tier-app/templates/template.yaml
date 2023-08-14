@@ -94,6 +94,11 @@ Resources:
                   - lambda:InvokeFunction
                 Resource: '*'
       RoleName: !Sub ThreeTierApp-CFn-APIGateway-Lambda-${AWS::Region}
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
   # API Gateway から Kinesis へのアクセスを許可する IAM Role
   IAMRoleForAPIGatewayAccessToKinesis:
     Type: AWS::IAM::Role

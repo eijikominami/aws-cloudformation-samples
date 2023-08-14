@@ -100,6 +100,9 @@ Resources:
       - InternetGatewayAttachment
     Type: AWS::Serverless::Application
     Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/availability-zone
+        SemanticVersion: 2.1.11
       Parameters:
         AvailabilityZone: !Select 
           - 0
@@ -114,15 +117,15 @@ Resources:
       Tags:
         environment: !Ref Environment
         createdby: !Ref TagValue
-      Location:
-        ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/availability-zone
-        SemanticVersion: 2.1.11
   Az2:
     DependsOn:
       # NATGateway requires provisioned Internet Gateway.
       - InternetGatewayAttachment
     Type: AWS::Serverless::Application
     Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/availability-zone
+        SemanticVersion: 2.1.11
       Parameters:
         AvailabilityZone: !Select
           - 1
@@ -138,9 +141,6 @@ Resources:
       Tags:
         environment: !Ref Environment
         createdby: !Ref TagValue
-      Location:
-        ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/availability-zone
-        SemanticVersion: 2.1.11
   # IAM
   IAMRoleForEC2:
     Type: AWS::IAM::Role
@@ -182,6 +182,11 @@ Resources:
                 Effect: Allow
           PolicyName: S3
       RoleName: !Sub ${AWS::StackName}-AWSEC2Role-${AWS::Region}
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
   # InstanceProfile
   IamInstanceProfileForIAMRoleForEC2:
     Type: AWS::IAM::InstanceProfile
