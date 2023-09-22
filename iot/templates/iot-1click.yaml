@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Description: AWSCloudFormationSamples/iot/iot-1click creates an environment to send messages trigged by AWS IoT 1-Click button.
 
