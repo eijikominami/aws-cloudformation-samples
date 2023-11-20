@@ -87,7 +87,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.1.11
+        SemanticVersion: 2.1.12
       NotificationARNs:
         - !If
           - CreateSNSForDeployment
@@ -104,7 +104,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.1.11
+        SemanticVersion: 2.1.12
       Parameters:
         TopicName: !Sub Deployment-createdby-${AWS::StackName}
       Tags:
@@ -228,6 +228,8 @@ Resources:
           HOOK_URL: !Ref HookUrl
           TEXT: !Ref Text
       FunctionName: !Sub sendChannelList-createdby-${AWS::StackName}
+      Layers:
+        - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV2-Arm64:12
       KmsKeyArn: !If
         - CreateKMSKey
         - !GetAtt KMSKey.Arn
@@ -272,7 +274,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/cloudwatch-alarm-about-events
-        SemanticVersion: 2.1.11
+        SemanticVersion: 2.1.12
       NotificationARNs:
         - !If
           - CreateSNSForDeployment

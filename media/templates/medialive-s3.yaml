@@ -169,7 +169,9 @@ Parameters:
     Default: RTMP
     AllowedValues:
       - RTMP
+      - RTMP_S3
       - ELEMENTAL_LINK
+      - ELEMENTAL_LINK_S3
       - S3
     Description: The input type [required]
   MediaTailorAdDecisionServerUrl:
@@ -390,7 +392,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.1.11
+        SemanticVersion: 2.1.12
       NotificationARNs:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters:
@@ -403,7 +405,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.1.11
+        SemanticVersion: 2.1.12
       Parameters:
         TopicName: !Sub Deployment-createdby-${AWS::StackName}
       Tags:
