@@ -238,7 +238,7 @@ Resources:
     Type: AWS::EC2::EIPAssociation
     Properties:
       InstanceId: !Ref EC2
-      EIP: !Ref EIPForEC2Instance
+      AllocationId: !GetAtt EIPForEC2Instance.AllocationId
   # EC2
   EC2:
     Type: AWS::EC2::Instance
