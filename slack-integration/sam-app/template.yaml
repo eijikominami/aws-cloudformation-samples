@@ -219,6 +219,8 @@ Resources:
       - LogGroupForLambdaSendChannelList
     Type: AWS::Serverless::Function
     Properties:
+      Architectures:
+        - arm64
       CodeUri: sendChannelList/
       Description: チャンネルリストをSlackに送信します。
       Environment:
