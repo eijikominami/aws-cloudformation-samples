@@ -268,7 +268,7 @@ Resources:
         InputStreamKey: !Ref StreamKey
         InputWhitelistRules: !Ref WhitelistRules
         MediaPackageChannelId: !GetAtt MediaPackage.Outputs.ChannelId
-        LogicalNamePrefix: !Ref AWS::StackName
+        LogicalName: !Ref AWS::StackName
         OutputType: MEDIA_PACKAGE
         OutputRtmpRtpUrl1: !Ref RtmpUrl1
         OutputRtmpStreamKey1: !Ref RtmpStreamKey1
@@ -304,7 +304,7 @@ Resources:
           - RecOnMediaPackage
           - !Ref VodSourceBucket
           - ''
-        LogicalNamePrefix: !Ref AWS::StackName
+        LogicalName: !Ref AWS::StackName
         OutputType: !Ref MediaPackageOutputType
         StartoverWindowSeconds: !Ref StartoverWindowSeconds
         SegmentDurationSeconds: !Ref SegmentDurationSeconds
@@ -349,7 +349,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.1.13
+        SemanticVersion: 2.1.23
       NotificationARNs:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters:
@@ -362,7 +362,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.1.13
+        SemanticVersion: 2.1.23
       Parameters:
         TopicName: !Sub Deployment-createdby-${AWS::StackName}
       Tags:

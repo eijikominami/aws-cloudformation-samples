@@ -78,7 +78,7 @@ Resources:
         SubnetIds: !Join [ ',', !Ref SubnetIds ]
         VpcId: !Ref VpcId
         Environment: !Ref Environment
-        LogicalNamePrefix: !Ref AWS::StackName
+        LogicalName: !Ref AWS::StackName
         TagKey: !Ref TagKey
         TagValue: !Ref TagValue
       Tags:
@@ -103,7 +103,7 @@ Resources:
         StaticRoutesOnly: !Ref StaticRoutesOnly
         TransitGatewayId: !GetAtt TransitGateway.Outputs.TransitGatewayId
         Environment: !Ref Environment
-        LogicalNamePrefix: !Ref AWS::StackName
+        LogicalName: !Ref AWS::StackName
         TagKey: !Ref TagKey
         TagValue: !Ref TagValue
       Tags:
@@ -121,7 +121,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.1.13
+        SemanticVersion: 2.1.23
       Parameters:
         TopicName: !Sub Deployment-createdby-${AWS::StackName}
       Tags:

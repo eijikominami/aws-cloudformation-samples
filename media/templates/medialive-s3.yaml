@@ -285,7 +285,7 @@ Resources:
         InputType: !Ref InputType
         InputStreamKey: !Ref StreamKey
         InputWhitelistRules: !Ref WhitelistRules
-        LogicalNamePrefix: !Ref AWS::StackName
+        LogicalName: !Ref AWS::StackName
         OutputType: S3
         OutputHlsBucket: !Sub medialive-${AWS::AccountId}
         OutputRtmpRtpUrl1: !Ref RtmpUrl1
@@ -323,7 +323,7 @@ Resources:
             - !GetAtt StaticWebsiteHosting.Outputs.CloudFrontURL
             - '/'
             - !GetAtt MediaLive.Outputs.ManifestFile 
-        LogicalNamePrefix: !Ref AWS::StackName
+        LogicalName: !Ref AWS::StackName
         MaxDurationSeconds: !Ref MediaTailorMaxDurationSeconds
         PersonalizationThresholdSeconds: !Ref MediaTailorPersonalizationThresholdSeconds
         SlateAdUrl: !Ref MediaTailorSlateAdUrl
@@ -392,7 +392,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.1.13
+        SemanticVersion: 2.1.23
       NotificationARNs:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters:
@@ -405,7 +405,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.1.13
+        SemanticVersion: 2.1.23
       Parameters:
         TopicName: !Sub Deployment-createdby-${AWS::StackName}
       Tags:
