@@ -75,7 +75,8 @@ Resources:
     Type: AWS::IAM::ServiceLinkedRole
     Properties: 
       AWSServiceName: inspector.amazonaws.com
-      Description: A service-linked role required for Amazon Inspector to access your resources.
+      CustomSuffix: !Ref AWS::StackName 
+      Description: !Sub A service-linked role required for Amazon Inspector created by ${AWS::StackName}.
   # EC2
   EC2:
     Type: AWS::CloudFormation::Stack
@@ -185,7 +186,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.2.2
+        SemanticVersion: 2.2.7
       NotificationARNs:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters:
@@ -198,7 +199,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.2.2
+        SemanticVersion: 2.2.7
       Parameters:
         TopicName: !Sub Deployment-createdby-${AWS::StackName}
       Tags:
