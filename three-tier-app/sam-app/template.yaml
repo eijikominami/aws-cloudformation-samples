@@ -23,7 +23,7 @@ Globals:
     Handler: lambda_function.lambda_handler
     Layers:
       # NOTE: AWS Lambda Extensions for Lambda Insights
-      - !Sub arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension-Arm64:11
+      - !Sub arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension-Arm64:31
     Runtime: python3.9
     Tracing: Active
     
