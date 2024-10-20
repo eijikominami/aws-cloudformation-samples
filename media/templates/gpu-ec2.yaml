@@ -22,6 +22,10 @@ Metadata:
           - SubnetPrivateCidrBlockAz2
           - VPCCidrBlock
       - Label: 
+          default: 'Notification Configuration'
+        Parameters: 
+          - AlarmLevel
+      - Label: 
           default: 'Tag Configuration'
         Parameters:
           - Environment 
@@ -29,6 +33,13 @@ Metadata:
           - TagValue
 
 Parameters:
+  AlarmLevel:
+    Type: String
+    Default: NOTICE
+    AllowedValues:
+      - NOTICE
+      - WARNING
+    Description: The alarm level of CloudWatch alarms
   EC2ImageId:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ami-windows-latest/Windows_Server-2019-English-Full-Base
@@ -102,8 +113,9 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/availability-zone
-        SemanticVersion: 2.2.7
+        SemanticVersion: 2.2.8
       Parameters:
+        AlarmLevel: !Ref AlarmLevel
         AvailabilityZone: !Select 
           - 0
           - Fn::GetAZs: !Ref 'AWS::Region'
@@ -125,8 +137,9 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/availability-zone
-        SemanticVersion: 2.2.7
+        SemanticVersion: 2.2.8
       Parameters:
+        AlarmLevel: !Ref AlarmLevel
         AvailabilityZone: !Select
           - 1
           - Fn::GetAZs: !Ref 'AWS::Region'

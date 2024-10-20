@@ -18,6 +18,7 @@ Metadata:
       - Label: 
           default: 'Notification Configuration'
         Parameters: 
+          - AlarmLevel
           - Email
       - Label: 
           default: 'Tag Configuration'
@@ -27,6 +28,13 @@ Metadata:
           - TagValue
 
 Parameters:
+  AlarmLevel:
+    Type: String
+    Default: NOTICE
+    AllowedValues:
+      - NOTICE
+      - WARNING
+    Description: The alarm level of CloudWatch alarms
   AutoScalingDesiredCapacity:
     Type: Number
     Default: 1
@@ -107,6 +115,7 @@ Resources:
       NotificationARNs:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters:
+        AlarmLevel: !Ref AlarmLevel
         LogicalName: !Ref AWS::StackName
         SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
         SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
@@ -128,6 +137,7 @@ Resources:
       NotificationARNs:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters:
+        AlarmLevel: !Ref AlarmLevel
         SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
         SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
         LogicalName: !Ref AWS::StackName
@@ -167,6 +177,7 @@ Resources:
       NotificationARNs:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters: 
+        AlarmLevel: !Ref AlarmLevel
         LogicalName: !Ref AWS::StackName
         SNSForAlertArn: !GetAtt SNSForAlert.Outputs.SNSTopicArn
         SNSForDeploymentArn: !GetAtt SNSForDeployment.Outputs.SNSTopicArn
@@ -186,7 +197,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.2.7
+        SemanticVersion: 2.2.8
       NotificationARNs:
         - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
       Parameters:
@@ -199,7 +210,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:172664222583:applications/sns-topic
-        SemanticVersion: 2.2.7
+        SemanticVersion: 2.2.8
       Parameters:
         TopicName: !Sub Deployment-createdby-${AWS::StackName}
       Tags:
