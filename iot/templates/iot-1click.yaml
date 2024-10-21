@@ -27,7 +27,7 @@ Parameters:
   SNSForAlertArn:
     Type: String
     Default: ''
-    Description: Amazon SNS Topic ARN for alert
+    Description: The Amazon SNS topic ARN for alert
   Environment:
     Type: String
     Default: development

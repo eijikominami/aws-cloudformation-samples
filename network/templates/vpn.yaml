@@ -45,6 +45,7 @@ Parameters:
   SNSForDeploymentArn:
     Type: String
     Default: ''
+    Description: The Amazon SNS topic ARN for deployment information
   Environment:
     Type: String
     Default: development

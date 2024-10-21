@@ -245,9 +245,11 @@ Parameters:
   SNSForAlertArn:
     Type: String
     Default: '' 
+    Description: The Amazon SNS topic ARN for alert
   SNSForDeploymentArn:
     Type: String
     Default: ''
+    Description: The Amazon SNS topic ARN for deployment information
   Environment:
     Type: String
     Default: production
