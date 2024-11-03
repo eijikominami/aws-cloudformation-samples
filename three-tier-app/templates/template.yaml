@@ -538,6 +538,11 @@ Resources:
       MemorySize: 128
       Role: !GetAtt IAMRoleForLambda.Arn
       Runtime: python3.9
+      Tags: 
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
       Timeout: 30
       TracingConfig: 
         Mode: Active
@@ -550,6 +555,11 @@ Resources:
       EventSourceArn: !GetAtt Kinesis.Arn
       FunctionName: !GetAtt LambdaPutData.Arn
       StartingPosition: TRIM_HORIZON
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue     
   LambdaGetData:
     DependsOn:
       - CloudWatchLogsGroupForApiGateway
@@ -685,6 +695,11 @@ Resources:
       MemorySize: 128
       Role: !GetAtt IAMRoleForLambda.Arn
       Runtime: python3.9
+      Tags: 
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
       Timeout: 30
       TracingConfig: 
         Mode: Active
