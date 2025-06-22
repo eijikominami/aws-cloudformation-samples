@@ -1,0 +1,702 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Step Functions workflow for video analysis using AWS AI services
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: 'Step Functions Configuration'
+        Parameters:
+          - CreateStepFunctionsBlueprint
+          - NotificationEmail
+      - Label:
+          default: 'Tag Configuration'
+        Parameters:
+          - Environment
+          - TagKey
+          - TagValue
+
+Parameters:
+  CreateStepFunctionsBlueprint:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Create Step Functions blueprint with full workflow (true) or minimal template (false) [required]
+  NotificationEmail:
+    Type: String
+    Description: Email address for video processing notifications [required]
+    AllowedPattern: ".*@.*"
+    ConstraintDescription: Must be a valid email address
+  Environment:
+    Type: String
+    Default: development
+    AllowedValues:
+      - development
+      - staging
+      - production
+    Description: Environment name
+  TagKey:
+    Type: String
+    Default: createdby
+    AllowedPattern: .+
+  TagValue:
+    Type: String
+    Default: aws-cloudformation-samples
+    AllowedPattern: .+
+
+Conditions:
+  CreateBlueprint: !Equals [ !Ref CreateStepFunctionsBlueprint, "true" ]
+
+Resources:
+  # S3 Bucket
+  S3ForVideo:
+    Type: AWS::S3::Bucket
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-${AWS::Region}-${AWS::AccountId}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+
+  # S3 Bucket Policy
+  S3BucketPolicyForVideo:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3ForVideo
+      PolicyDocument:
+        Version: 2012-10-17
+        Id: !Ref S3ForVideo
+        Statement:
+          - Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt S3ForVideo.Arn
+              - !Join
+                - ''
+                - - !GetAtt S3ForVideo.Arn
+                  - /*
+            Condition:
+              NumericLessThan:
+                s3:TlsVersion: 1.2
+              Bool:
+                aws:SecureTransport: false
+
+  # IAM Role for Step Functions
+  IAMRoleForStepFunctions:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Description: A role required for Step Functions to access AWS services
+      Policies:
+        - PolicyName: VideoAnalysis
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - mediaconvert:CreateJob
+                  - mediaconvert:GetJob
+                  - rekognition:StartSegmentDetection
+                  - rekognition:GetSegmentDetection
+                  - transcribe:StartTranscriptionJob
+                  - transcribe:GetTranscriptionJob
+                  - lambda:InvokeFunction
+                  - sns:Publish
+                  - s3:GetObject
+                  - s3:PutObject
+                  - bedrock:*
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: !GetAtt IAMRoleForMediaConvert.Arn
+      RoleName: !Sub ${AWS::StackName}-StepFunctions-${AWS::Region}
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+
+  # IAM Role for MediaConvert
+  IAMRoleForMediaConvert:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: mediaconvert.amazonaws.com
+            Action: sts:AssumeRole
+      Description: A role required for MediaConvert to access S3
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                Resource: '*'
+      RoleName: !Sub ${AWS::StackName}-MediaConvert-${AWS::Region}
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+
+  # IAM Role for Nova Lambda
+  IAMRoleForNovaLambda:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Description: A role required for Lambda to analyze video with Bedrock Nova
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: BedrockNovaAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - s3:GetObject
+                Resource: '*'
+      RoleName: !Sub ${AWS::StackName}-LambdaForAnalysis-${AWS::Region}
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+
+  # Lambda Function for Nova Video Analysis
+  LambdaForNovaAnalysis:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-nova-analysis-${AWS::Region}
+      Runtime: python3.11
+      Handler: index.handler
+      Role: !GetAtt IAMRoleForNovaLambda.Arn
+      Timeout: 300
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import base64
+          from urllib.parse import unquote_plus
+          
+          bedrock = boto3.client('bedrock-runtime')
+          s3 = boto3.client('s3')
+          sts = boto3.client('sts')
+          
+          def handler(event, context):
+              try:
+                  # Extract S3 information from event
+                  bucket = event['detail']['bucket']['name']
+                  key = unquote_plus(event['detail']['object']['key'])
+                  
+                  # Get current account ID
+                  account_id = sts.get_caller_identity()['Account']
+                  
+                  # Prepare request for Bedrock Nova with S3 location
+                  request_body = {
+                      "schemaVersion": "messages-v1",
+                      "messages": [
+                          {
+                              "role": "user",
+                              "content": [
+                                  {
+                                      "video": {
+                                          "format": "mp4",
+                                          "source": {
+                                              "s3Location": {
+                                                  "uri": f"s3://{bucket}/{key}",
+                                                  "bucketOwner": account_id
+                                              }
+                                          }
+                                      }
+                                  },
+                                  {
+                                      "text": "この動画の内容を分析して、主要なシーンや要素を日本語で説明してください。"
+                                  }
+                              ]
+                          }
+                      ],
+                      "inferenceConfig": {
+                          "maxTokens": 1000,
+                          "temperature": 0.7
+                      }
+                  }
+                  
+                  # Call Bedrock Nova Lite directly
+                  response = bedrock.invoke_model(
+                      modelId='amazon.nova-lite-v1:0',
+                      body=json.dumps(request_body)
+                  )
+                  
+                  # Parse response
+                  response_body = json.loads(response['body'].read())
+                  print(f"Nova response: {response_body}")
+                  
+                  # Extract analysis result
+                  if 'output' in response_body and 'message' in response_body['output']:
+                      content = response_body['output']['message']['content']
+                      if content and len(content) > 0:
+                          analysis_result = content[0].get('text', 'No analysis available')
+                      else:
+                          analysis_result = 'No content in Nova response'
+                  else:
+                      analysis_result = 'Invalid Nova response format'
+                  
+                  return {
+                      'statusCode': 200,
+                      'analysis': analysis_result,
+                      'bucket': bucket,
+                      'key': key
+                  }
+                  
+              except Exception as e:
+                  print(f"Error: {str(e)}")
+                  return {
+                      'statusCode': 500,
+                      'error': str(e),
+                      'analysis': 'Nova analysis failed'
+                  }
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+
+  # SNS Topic
+  SNSForVideoProcessing:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub ${AWS::StackName}-video-processing-${AWS::Region}
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+
+  # SNS Subscription for Email
+  SNSSubscriptionEmail:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref SNSForVideoProcessing
+      Protocol: email
+      Endpoint: !Ref NotificationEmail
+
+  # IAM Role for EventBridge
+  IAMRoleForEventBridge:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Description: A role required for EventBridge to start Step Functions
+      Policies:
+        - PolicyName: StartStepFunctions
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                Resource: !Ref StepFunctionsForVideoAnalysis
+      RoleName: !Sub ${AWS::StackName}-EventBridge-${AWS::Region}
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+
+  # EventBridge Rule
+  EventBridgeRuleForS3:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub ${AWS::StackName}-s3-video-upload-${AWS::Region}
+      Description: Trigger Step Functions when MP4 files are created or updated in S3 root level
+      EventPattern:
+        source:
+          - aws.s3
+        detail-type:
+          - Object Created
+          - Object Updated
+        detail:
+          object:
+            key:
+              - anything-but:
+                  prefix: proxy/
+      State: ENABLED
+      Targets:
+        - Arn: !Ref StepFunctionsForVideoAnalysis
+          Id: StepFunctionsTarget
+          RoleArn: !GetAtt IAMRoleForEventBridge.Arn
+
+  # Step Functions State Machine
+  StepFunctionsForVideoAnalysis:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: !Sub ${AWS::StackName}-video-analysis-${AWS::Region}
+      RoleArn: !GetAtt IAMRoleForStepFunctions.Arn
+      Definition: !If
+        - CreateBlueprint
+        - Comment: Process uploaded MP4 file with MediaConvert, Rekognition, Transcribe and Nova
+          StartAt: EnableBedrockNova
+          States:
+            EnableBedrockNova:
+              Type: Pass
+              Comment: Bedrock Nova is enabled by default in the region
+              Parameters:
+                message: Bedrock Nova ready for use
+                jobId.$: $$.Execution.Name
+                timestamp.$: $$.State.EnteredTime
+              ResultPath: $.bedrockConfig
+              Next: CheckFileType
+            CheckFileType:
+              Type: Choice
+              Choices:
+                - Variable: $.detail.object.key
+                  StringMatches: "*.mp4"
+                  Next: ProcessMP4
+              Default: NotMP4File
+            ProcessMP4:
+              Type: Parallel
+              Branches:
+                - StartAt: ConvertMP4
+                  States:
+                    ConvertMP4:
+                      Type: Task
+                      Resource: arn:aws:states:::aws-sdk:mediaconvert:createJob
+                      Parameters:
+                        Role: !GetAtt IAMRoleForMediaConvert.Arn
+                        Settings:
+                          Inputs:
+                            - FileInput.$: States.Format('s3://{}/{}', $.detail.bucket.name, $.detail.object.key)
+                              AudioSelectors:
+                                Audio Selector 1:
+                                  DefaultSelection: DEFAULT
+                          OutputGroups:
+                            - Name: ProxyOutput
+                              OutputGroupSettings:
+                                Type: FILE_GROUP_SETTINGS
+                                FileGroupSettings:
+                                  Destination.$: States.Format('s3://{}/proxy/', $.detail.bucket.name)
+                              Outputs:
+                                - VideoDescription:
+                                    Width: 640
+                                    Height: 480
+                                    CodecSettings:
+                                      Codec: H_264
+                                      H264Settings:
+                                        Bitrate: 1000000
+                                  AudioDescriptions:
+                                    - AudioSourceName: Audio Selector 1
+                                      AudioTypeControl: FOLLOW_INPUT
+                                      CodecSettings:
+                                        Codec: AAC
+                                        AacSettings:
+                                          Bitrate: 128000
+                                          CodingMode: CODING_MODE_2_0
+                                          SampleRate: 48000
+                                  ContainerSettings:
+                                    Container: MP4
+                      ResultPath: $.mediaConvertJob
+                      Next: WaitForConversion
+                    WaitForConversion:
+                      Type: Wait
+                      Seconds: 10
+                      Next: GetConversionStatus
+                    GetConversionStatus:
+                      Type: Task
+                      Resource: arn:aws:states:::aws-sdk:mediaconvert:getJob
+                      Parameters:
+                        Id.$: $.mediaConvertJob.Job.Id
+                      ResultPath: $.conversionStatus
+                      Next: CheckConversionStatus
+                    CheckConversionStatus:
+                      Type: Choice
+                      Choices:
+                        - Variable: $.conversionStatus.Job.Status
+                          StringEquals: COMPLETE
+                          Next: ConversionCompleted
+                        - Variable: $.conversionStatus.Job.Status
+                          StringEquals: ERROR
+                          Next: ConversionFailed
+                      Default: WaitForConversion
+                    ConversionCompleted:
+                      Type: Task
+                      Resource: arn:aws:states:::lambda:invoke
+                      Parameters:
+                        FunctionName: !Ref LambdaForNovaAnalysis
+                        Payload:
+                          detail:
+                            bucket:
+                              name.$: $.detail.bucket.name
+                            object:
+                              key.$: States.Format('proxy/{}', $.detail.object.key)
+                      ResultPath: $.novaAnalysis
+                      Next: NovaAnalysisCompleted
+                      Catch:
+                        - ErrorEquals:
+                            - States.ALL
+                          Next: NovaAnalysisFailed
+                          ResultPath: $.novaError
+                    NovaAnalysisCompleted:
+                      Type: Pass
+                      Parameters:
+                        status: SUCCESS
+                        message: Nova analysis completed successfully
+                        outputLocation.$: !Sub States.Format('https://s3.console.aws.amazon.com/s3/object/{}/proxy/{}?region=${AWS::Region}', $.detail.bucket.name, $.detail.object.key)
+                        analysis.$: $.novaAnalysis.Payload.analysis
+                      End: true
+                    NovaAnalysisFailed:
+                      Type: Pass
+                      Parameters:
+                        status: SUCCESS
+                        message: Nova analysis failed
+                        outputLocation.$: !Sub States.Format('https://s3.console.aws.amazon.com/s3/object/{}/proxy/{}?region=${AWS::Region}', $.detail.bucket.name, $.detail.object.key)
+                        analysis: Nova analysis failed
+                      End: true
+                    ConversionFailed:
+                      Type: Pass
+                      Parameters:
+                        status: FAILED
+                        message: MediaConvert conversion failed
+                        error.$: $.conversionStatus.Job.ErrorMessage
+                        outputLocation: N/A
+                        analysis: MediaConvert failed - no analysis available
+                      End: true
+                - StartAt: DetectSegments
+                  States:
+                    DetectSegments:
+                      Type: Task
+                      Resource: arn:aws:states:::aws-sdk:rekognition:startSegmentDetection
+                      Parameters:
+                        Video:
+                          S3Object:
+                            Bucket.$: $.detail.bucket.name
+                            Name.$: $.detail.object.key
+                        SegmentTypes:
+                          - TECHNICAL_CUE
+                      ResultPath: $.rekognitionJob
+                      Next: WaitForSegmentDetection
+                    WaitForSegmentDetection:
+                      Type: Wait
+                      Seconds: 10
+                      Next: GetSegmentDetection
+                    GetSegmentDetection:
+                      Type: Task
+                      Resource: arn:aws:states:::aws-sdk:rekognition:getSegmentDetection
+                      Parameters:
+                        JobId.$: $.rekognitionJob.JobId
+                      ResultPath: $.segmentResults
+                      Next: CheckJobStatus
+                    CheckJobStatus:
+                      Type: Choice
+                      Choices:
+                        - Variable: $.segmentResults.JobStatus
+                          StringEquals: SUCCEEDED
+                          Next: JobCompleted
+                        - Variable: $.segmentResults.JobStatus
+                          StringEquals: FAILED
+                          Next: JobFailed
+                      Default: WaitForSegmentDetection
+                    JobCompleted:
+                      Type: Choice
+                      Choices:
+                        - Variable: $.segmentResults.Segments[0]
+                          IsPresent: true
+                          Next: BlackDetected
+                      Default: NoBlackDetected
+                    BlackDetected:
+                      Type: Pass
+                      Parameters:
+                        status: SUCCESS
+                        message: Rekognition segment detection completed
+                        blackDetected: true
+                      End: true
+                    NoBlackDetected:
+                      Type: Pass
+                      Parameters:
+                        status: SUCCESS
+                        message: Rekognition segment detection completed
+                        blackDetected: false
+                      End: true
+                    JobFailed:
+                      Type: Pass
+                      Parameters:
+                        status: FAILED
+                        message: Rekognition segment detection failed
+                        error: Segment detection failed
+                        blackDetected: false
+                      End: true
+                - StartAt: StartTranscription
+                  States:
+                    StartTranscription:
+                      Type: Task
+                      Resource: arn:aws:states:::aws-sdk:transcribe:startTranscriptionJob
+                      Parameters:
+                        TranscriptionJobName.$: States.Format('transcribe-job-{}', $.bedrockConfig.jobId)
+                        Media:
+                          MediaFileUri.$: States.Format('s3://{}/{}', $.detail.bucket.name, $.detail.object.key)
+                        MediaFormat: mp4
+                        LanguageCode: ja-JP
+                      ResultPath: $.transcribeJob
+                      Next: WaitForTranscription
+                    WaitForTranscription:
+                      Type: Wait
+                      Seconds: 10
+                      Next: GetTranscriptionStatus
+                    GetTranscriptionStatus:
+                      Type: Task
+                      Resource: arn:aws:states:::aws-sdk:transcribe:getTranscriptionJob
+                      Parameters:
+                        TranscriptionJobName.$: States.Format('transcribe-job-{}', $.bedrockConfig.jobId)
+                      ResultPath: $.transcriptionStatus
+                      Next: CheckTranscriptionStatus
+                    CheckTranscriptionStatus:
+                      Type: Choice
+                      Choices:
+                        - Variable: $.transcriptionStatus.TranscriptionJob.TranscriptionJobStatus
+                          StringEquals: COMPLETED
+                          Next: TranscriptionCompleted
+                        - Variable: $.transcriptionStatus.TranscriptionJob.TranscriptionJobStatus
+                          StringEquals: FAILED
+                          Next: TranscriptionFailed
+                      Default: WaitForTranscription
+                    TranscriptionCompleted:
+                      Type: Pass
+                      Parameters:
+                        status: SUCCESS
+                        message: Transcribe transcription completed
+                        transcriptUri.$: $.transcriptionStatus.TranscriptionJob.Transcript.TranscriptFileUri
+                        languageCode.$: $.transcriptionStatus.TranscriptionJob.LanguageCode
+                      End: true
+                    TranscriptionFailed:
+                      Type: Pass
+                      Parameters:
+                        status: FAILED
+                        message: Transcribe transcription failed
+                        error: Transcription processing failed
+                        transcriptUri: N/A
+                        languageCode: ja-JP
+                      End: true
+              Next: SendSNSNotification
+            SendSNSNotification:
+              Type: Task
+              Resource: arn:aws:states:::sns:publish
+              Parameters:
+                TopicArn: !Ref SNSForVideoProcessing
+                Subject: 映像処理完了通知
+                Message.$: |
+                  States.Format('動画分析が完了しました
+                  
+                  【Proxyの作成】
+                  AWS Elemental MediaConvert を使用しました。
+                  ステータス: {}
+                  出力先: {}
+                  
+                  【QC】
+                  Amazon Rekognition Video を使用しました。
+                  ステータス: {}
+                  黒味: {}
+                  
+                  【文字起こし】
+                  Amazon Transcribe を使用しました。
+                  ステータス: {}
+                  文字起こしURI: {}
+                  
+                  【要約】
+                  Amazon Bedrock を使用しました。
+                  ステータス: {}
+                  分析内容: {}',
+                  $[0].message,
+                  $[0].outputLocation,
+                  $[1].message,
+                  States.Format('{}', $[1].blackDetected),
+                  $[2].message,
+                  $[2].transcriptUri,
+                  $[0].message,
+                  $[0].analysis)
+              End: true
+            NotMP4File:
+              Type: Pass
+              Result:
+                message: File is not MP4, skipping conversion
+              End: true
+        - Comment: Minimal Step Functions template - customize as needed
+          StartAt: StartState
+          States:
+            StartState:
+              Type: Pass
+              Parameters:
+                message: Step Functions workflow started
+                input.$: $
+              Next: EndState
+            EndState:
+              Type: Pass
+              Parameters:
+                message: Step Functions workflow completed
+                result: Please customize this workflow
+              End: true
+      Tags:
+        - Key: Name
+          Value: !Sub stepfunctions-${AWS::StackName}-${AWS::Region}
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+
+Outputs:
+  EventBridgeRuleArn:
+    Description: EventBridge Rule ARN for triggering analysis
+    Value: !GetAtt EventBridgeRuleForS3.Arn
+  S3Bucket:
+    Description: S3 Bucket for video files
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/s3/buckets/${S3ForVideo}?region=${AWS::Region}&bucketType=general&tab=objects
+  StepFunctions:
+    Description: Step Functions State Machine
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/states/home?region=${AWS::Region}#/statemachines/view/${StepFunctionsForVideoAnalysis}

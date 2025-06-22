@@ -1,0 +1,18 @@
+digraph INFRA {
+  node [ color = "black", fillcolor = "#E6E6E6", height =1, style = "filled,bold,rounded", fontname = "Arial" ];
+  "S3ForVideo" [ label = "S3ForVideo
+(AWS::S3::Bucket)", shape =cylinder, fillcolor = "#FFF5CD" ];
+  "S3BucketPolicyForVideo" [ label = "S3BucketPolicyForVideo
+(AWS::S3::BucketPolicy)", shape =rectangle ];
+  "IAMRoleForStepFunctions" [ label = "IAMRoleForStepFunctions
+(AWS::IAM::Role)", shape =rectangle ];
+  "IAMRoleForMediaConvert" [ label = "IAMRoleForMediaConvert
+(AWS::IAM::Role)", shape =rectangle ];
+  "IAMRoleForNovaLambda" [ label = "IAMRoleForNovaLambda
+(AWS::IAM::Role)", shape =rectangle ];
+  "LambdaForNovaAnalysis" [ label = "LambdaForNovaAnalysis
+(AWS::Lambda::Function)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "S3BucketPolicyForVideo" -> "S3ForVideo";
+  "IAMRoleForStepFunctions" -> "IAMRoleForMediaConvert";
+  "LambdaForNovaAnalysis" -> "IAMRoleForNovaLambda";
+}
