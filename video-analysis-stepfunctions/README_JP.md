@@ -20,9 +20,9 @@
 
 以下のボタンをクリックすることで、この **CloudFormationをデプロイ** することが可能です。
 
-| 米国東部 (バージニア北部) | アジアパシフィック (東京) |
+| 米国西部 (オレゴン) | アジアパシフィック (東京) |
 | --- | --- |
-| [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?stackName=video-analysis-stepfunctions&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml) | [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/create/review?stackName=video-analysis-stepfunctions&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml) |
+| [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?stackName=video-analysis-stepfunctions&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml) | [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/create/review?stackName=video-analysis-stepfunctions&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml) |
 
 デプロイ時に、以下のパラメータを指定することができます。
 
@@ -43,7 +43,7 @@
 
 ![S3 バケットを確認](./images/cloudformation-output-s3-bucket.png)
 
-2. S3 バケットに[**動画ファイル**](https://static.us-east-1.prod.workshops.aws/public/53ec1eb1-d872-42ac-b0b2-f084ea47b036/static/prepare/whatIsAmazonTranscribe.mp4)をアップロード：
+2. S3 バケットに[**動画ファイル**](https://static.us-west-2.prod.workshops.aws/public/53ec1eb1-d872-42ac-b0b2-f084ea47b036/static/prepare/whatIsAmazonTranscribe.mp4)をアップロード：
 
 ![ファイルをアップロード](./images/s3-upload-video-file.png)
 
@@ -121,7 +121,7 @@ Amazon Bedrock を使用しました。
 {stack-name}-{region}-{account-id}
 ```
 
-2. S3 バケットに[**動画ファイル**](https://static.us-east-1.prod.workshops.aws/public/53ec1eb1-d872-42ac-b0b2-f084ea47b036/static/prepare/whatIsAmazonTranscribe.mp4)をアップロード：
+2. S3 バケットに[**動画ファイル**](https://static.us-west-2.prod.workshops.aws/public/53ec1eb1-d872-42ac-b0b2-f084ea47b036/static/prepare/whatIsAmazonTranscribe.mp4)をアップロード：
 ```bash
 aws s3 cp whatIsAmazonTranscribe.mp4 s3://{stack-name}-{region}-{account-id}/
 ```
@@ -276,9 +276,9 @@ CloudFormation テンプレートは以下のリソースを作成します：
 
 上記の「[**インストール**](#インストール)」セクションの手順に従って、`CreateStepFunctionsBlueprint` を `true`（デフォルト）のままデプロイしてください。これにより、完成された Step Functions ワークフローを含む全てのリソースが作成されます。
 
-| 米国東部 (バージニア北部) | アジアパシフィック (東京) |
+| 米国西部 (オレゴン) | アジアパシフィック (東京) |
 | --- | --- |
-| [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?stackName=video-analysis-stepfunctions&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml) | [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/create/review?stackName=video-analysis-stepfunctions&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml) |
+| [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?stackName=video-analysis-stepfunctions&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml) | [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/create/review?stackName=video-analysis-stepfunctions&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml) |
 
 ![完成版のデプロイ](./images/cloudformation-deployment.png)
 
@@ -299,9 +299,9 @@ CloudFormation テンプレートは以下のリソースを作成します：
 
 `CreateStepFunctionsBlueprint` を `false` に設定することで、Step Functions のワークフローが作成されず、必要な IAM ロール、S3 バケット、Lambda 関数のみが作成されます。
 
-| 米国東部 (バージニア北部) | アジアパシフィック (東京) |
+| 米国西部 (オレゴン) | アジアパシフィック (東京) |
 | --- | --- |
-| [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?stackName=video-analysis-workshop&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yamlparam_CreateStepFunctionsBlueprint=false) | [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/create/review?stackName=video-analysis-workshop&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml&param_CreateStepFunctionsBlueprint=false) |
+| [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?stackName=video-analysis-workshop&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yamlparam_CreateStepFunctionsBlueprint=false) | [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/create/review?stackName=video-analysis-workshop&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml&param_CreateStepFunctionsBlueprint=false) |
 
 ![学習用スタックの作成](./images/cloudformation-deployment-workshop.png)
 
