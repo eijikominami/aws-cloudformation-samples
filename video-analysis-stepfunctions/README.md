@@ -2,7 +2,7 @@ English / [**日本語**](README_JP.md)
 
 # Video Analysis Pipeline using AWS Step Functions and AI Services
 
-This project implements an automated video analysis pipeline using AWS Step Functions and AI services. It processes video content through multiple AWS AI services including MediaConvert, Rekognition, Transcribe, and Bedrock Nova to provide comprehensive video analysis and insights.
+This project implements an automated video analysis pipeline using AWS Step Functions and AI services as additional content for the [AWS Step Functions Workflow Studio Workshop](https://catalog.us-east-1.prod.workshops.aws/workshops/c9f9ccbf-add5-47d8-be0f-c6f599c37057/ja-JP). It processes video content through multiple AWS AI services including MediaConvert, Rekognition, Transcribe, and Bedrock Nova to provide comprehensive video analysis and insights.
 
 This solution provides a serverless architecture that automatically processes uploaded videos through a sophisticated workflow. It handles video transcoding, scene detection, speech-to-text conversion, and intelligent content analysis using AWS's advanced AI capabilities. The system is designed to be scalable, secure, and easily deployable across different environments.
 
@@ -43,7 +43,7 @@ After deployment completion, a confirmation email will be sent to the specified 
 
 ![Check S3 Bucket](./images/cloudformation-output-s3-bucket.png)
 
-2. Upload a [**video file**](https://static.us-west-2.prod.workshops.aws/public/53ec1eb1-d872-42ac-b0b2-f084ea47b036/static/prepare/whatIsAmazonTranscribe.mp4) to the S3 bucket:
+2. Upload a [**video file**](https://catalog.us-east-1.prod.workshops.aws/workshops/c9f9ccbf-add5-47d8-be0f-c6f599c37057/ja-JP/scenario2/01-prepare-video) to the S3 bucket:
 
 ![Upload File](./images/s3-upload-video-file.png)
 
@@ -121,7 +121,7 @@ This video introduces AWS cloud service "Amazon Transcribe" and communicates its
 {stack-name}-{region}-{account-id}
 ```
 
-2. Upload a [**video file**](https://static.us-west-2.prod.workshops.aws/public/53ec1eb1-d872-42ac-b0b2-f084ea47b036/static/prepare/whatIsAmazonTranscribe.mp4) to the S3 bucket:
+2. Upload a [**video file**](https://catalog.us-east-1.prod.workshops.aws/workshops/c9f9ccbf-add5-47d8-be0f-c6f599c37057/ja-JP/scenario2/01-prepare-video) to the S3 bucket:
 ```bash
 aws s3 cp whatIsAmazonTranscribe.mp4 s3://{stack-name}-{region}-{account-id}/
 ```
@@ -224,7 +224,6 @@ The following configuration values are hardcoded in Step Functions:
 | Rekognition | Segment type | TECHNICAL_CUE |
 | Transcribe | Speech recognition language | ja-JP |
 | Transcribe | Media format | mp4 |
-| Bedrock Nova | Model ID | amazon.nova-lite-v1:0 |
 | Bedrock Nova | Maximum tokens | 1,000 |
 | Bedrock Nova | Temperature parameter | 0.7 |
 | Bedrock Nova | Prompt language | Japanese |
@@ -278,6 +277,8 @@ Follow the [**Quick Start**](#quick-start-aws-console) steps to confirm that pro
 ![Check Step Functions](./images/cloudformation-output-step-functions.png)
 ![Edit Step Functions](./images/step-functions-edit-state-machine.png)
 
+After receiving the confirmation email, click the **Confirm subscription** link, then follow the [Quick Start (AWS Console)](#quick-start-aws-console) steps to upload a video. An email with processing results will be sent.
+
 #### 2. Create Learning Stack
 
 Next, create a **learning stack** to build Step Functions yourself.
@@ -292,7 +293,7 @@ Setting `CreateStepFunctionsBlueprint` to `false` will not create the Step Funct
 
 | US West (Oregon) | Asia Pacific (Tokyo) |
 | --- | --- |
-| [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?stackName=video-analysis-workshop&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yamlparam_CreateStepFunctionsBlueprint=false) | [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/create/review?stackName=video-analysis-workshop&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml&param_CreateStepFunctionsBlueprint=false) |
+| [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?stackName=video-analysis-workshop&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml&param_CreateStepFunctionsBlueprint=false) | [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/create/review?stackName=video-analysis-workshop&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml&param_CreateStepFunctionsBlueprint=false) |
 
 ![Create Learning Stack](./images/cloudformation-deployment-workshop.png)
 

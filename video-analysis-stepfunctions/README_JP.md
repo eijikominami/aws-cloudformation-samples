@@ -2,7 +2,7 @@
 
 # AWS Step Functions と AI サービスを使用した動画分析パイプライン
 
-このプロジェクトは、AWS Step Functions と AI サービスを使用した自動動画分析パイプラインを実装します。MediaConvert、Rekognition、Transcribe、Bedrock Nova を含む複数の AWS AI サービスを通じて動画コンテンツを処理し、包括的な動画分析と洞察を提供します。
+このプロジェクトは、[AWS Step Functions Workflow Studio ワークショップ](https://catalog.us-east-1.prod.workshops.aws/workshops/c9f9ccbf-add5-47d8-be0f-c6f599c37057/ja-JP) の追加コンテンツとして、AWS Step Functions と AI サービスを使用した自動動画分析パイプラインを実装します。MediaConvert、Rekognition、Transcribe、Bedrock Nova を含む複数の AWS AI サービスを通じて動画コンテンツを処理し、包括的な動画分析と洞察を提供します。
 
 このソリューションは、アップロードされた動画を洗練されたワークフローで自動処理するサーバーレスアーキテクチャを提供します。動画トランスコーディング、シーン検出、音声テキスト変換、AWS の高度な AI 機能を使用したインテリジェントなコンテンツ分析を処理します。システムはスケーラブル、セキュア、かつ異なる環境に簡単にデプロイできるよう設計されています。
 
@@ -43,7 +43,7 @@
 
 ![S3 バケットを確認](./images/cloudformation-output-s3-bucket.png)
 
-2. S3 バケットに[**動画ファイル**](https://static.us-west-2.prod.workshops.aws/public/53ec1eb1-d872-42ac-b0b2-f084ea47b036/static/prepare/whatIsAmazonTranscribe.mp4)をアップロード：
+2. S3 バケットに[**動画ファイル**](https://catalog.us-east-1.prod.workshops.aws/workshops/c9f9ccbf-add5-47d8-be0f-c6f599c37057/ja-JP/scenario2/01-prepare-video)をアップロード：
 
 ![ファイルをアップロード](./images/s3-upload-video-file.png)
 
@@ -121,7 +121,7 @@ Amazon Bedrock を使用しました。
 {stack-name}-{region}-{account-id}
 ```
 
-2. S3 バケットに[**動画ファイル**](https://static.us-west-2.prod.workshops.aws/public/53ec1eb1-d872-42ac-b0b2-f084ea47b036/static/prepare/whatIsAmazonTranscribe.mp4)をアップロード：
+2. S3 バケットに[**動画ファイル**](https://catalog.us-east-1.prod.workshops.aws/workshops/c9f9ccbf-add5-47d8-be0f-c6f599c37057/ja-JP/scenario2/01-prepare-video)をアップロード：
 ```bash
 aws s3 cp whatIsAmazonTranscribe.mp4 s3://{stack-name}-{region}-{account-id}/
 ```
@@ -233,7 +233,6 @@ CloudFormation テンプレートは以下のリソースを作成します：
 | Rekognition | セグメントタイプ | TECHNICAL_CUE |
 | Transcribe | 音声認識言語 | ja-JP |
 | Transcribe | メディアフォーマット | mp4 |
-| Bedrock Nova | モデル ID | amazon.nova-lite-v1:0 |
 | Bedrock Nova | 最大トークン数 | 1,000 |
 | Bedrock Nova | 温度パラメータ | 0.7 |
 | Bedrock Nova | プロンプト言語 | 日本語 |
@@ -287,6 +286,8 @@ CloudFormation テンプレートは以下のリソースを作成します：
 ![Step Functions を確認](./images/cloudformation-output-step-functions.png)
 ![Step Functions を編集](./images/step-functions-edit-state-machine.png)
 
+受信したメール内の **Confirm subscriptionリンクをクリックしたあとで** 、[クイックスタート (AWS Console)](#クイックスタート-aws-console) の手順に従って動画をアップロードしてください。処理結果が記されたメールが送信されます。
+
 #### 2. 学習用スタックの作成
 
 次に、Step Functions を自分で構築するための **学習用スタック** を作成します。
@@ -301,7 +302,7 @@ CloudFormation テンプレートは以下のリソースを作成します：
 
 | 米国西部 (オレゴン) | アジアパシフィック (東京) |
 | --- | --- |
-| [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?stackName=video-analysis-workshop&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yamlparam_CreateStepFunctionsBlueprint=false) | [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/create/review?stackName=video-analysis-workshop&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml&param_CreateStepFunctionsBlueprint=false) |
+| [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?stackName=video-analysis-workshop&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml&param_CreateStepFunctionsBlueprint=false) | [![cloudformation-launch-stack](./images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/create/review?stackName=video-analysis-workshop&templateURL=https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-samples/video-analysis-stepfunctions/template.yaml&param_CreateStepFunctionsBlueprint=false) |
 
 ![学習用スタックの作成](./images/cloudformation-deployment-workshop.png)
 
