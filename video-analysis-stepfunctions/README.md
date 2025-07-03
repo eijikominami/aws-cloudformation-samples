@@ -16,6 +16,25 @@ This solution provides a serverless architecture that automatically processes up
 ```
 
 ## Usage
+
+### Prerequisites
+
+Enable model access for Amazon Bedrock.
+
+1. Access [Model access](https://us-west-2.console.aws.amazon.com/bedrock/home#/modelaccess).
+
+2. Click the [Enable specific models] button.
+
+![Enable specific models](./images/bedrock-modelaccess.png)
+
+3. Check [Nova Lite] and click [Next].
+
+![Nova Lite](./images/bedrock-novalite.png)
+
+4. Click [Submit].
+
+![Submit](./images/bedrock-comfirmation.png)
+
 ### Installation
 
 You can deploy this **CloudFormation** by clicking the buttons below.
@@ -224,6 +243,7 @@ The following configuration values are hardcoded in Step Functions:
 | Rekognition | Segment type | TECHNICAL_CUE |
 | Transcribe | Speech recognition language | ja-JP |
 | Transcribe | Media format | mp4 |
+| Bedrock Nova | Model ID | Region-specific (us.amazon.nova-lite-v1:0, eu.amazon.nova-lite-v1:0, apac.amazon.nova-lite-v1:0) |
 | Bedrock Nova | Maximum tokens | 1,000 |
 | Bedrock Nova | Temperature parameter | 0.7 |
 | Bedrock Nova | Prompt language | Japanese |
@@ -302,6 +322,8 @@ Setting `CreateStepFunctionsBlueprint` to `false` will replace the Step Function
 Build your own Step Functions using the resources created in step 2, referencing the complete Step Functions workflow created in step 1.
 
 ![Edit Step Functions](./images/step-functions-compare-state-machine.png)
+
+When `CreateStepFunctionsBlueprint` is set to `false`, the Rekognition workflow is replaced with a simple placeholder that you can customize. The MediaConvert and Transcribe workflows remain fully functional.
 
 The following table shows the main states and their settings for the Step Functions workflow:
 

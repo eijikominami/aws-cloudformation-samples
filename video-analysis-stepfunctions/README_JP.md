@@ -16,6 +16,25 @@
 ```
 
 ## 使用方法
+
+### 事前準備
+
+Amazon Bedrock のモデルアクセスを有効にします。
+
+1. [モデルアクセス](https://us-west-2.console.aws.amazon.com/bedrock/home#/modelaccess) にアクセスします。
+
+2. [特定のモデルを有効にする] ボタンをクリックします。
+
+![特定のモデルを有効にする](./images/bedrock-modelaccess.png)
+
+3.　[Nova Lite] にチェックを入れ、[次へ] をクリックします。
+
+![Nova Lite](./images/bedrock-novalite.png)
+
+4. [送信] をクリックします。
+
+![送信](./images/bedrock-comfirmation.png)
+
 ### インストール
 
 以下のボタンをクリックすることで、この **CloudFormationをデプロイ** することが可能です。
