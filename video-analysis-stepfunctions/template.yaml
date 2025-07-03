@@ -423,11 +423,10 @@ Resources:
     Properties:
       StateMachineName: !Sub ${AWS::StackName}-video-analysis-${AWS::Region}
       RoleArn: !GetAtt IAMRoleForStepFunctions.Arn
-      Definition: !If
-        - CreateBlueprint
-        - Comment: Process uploaded MP4 file with MediaConvert, Rekognition, Transcribe and Nova
-          StartAt: EnableBedrockNova
-          States:
+      Definition:
+        Comment: Process uploaded MP4 file with MediaConvert, Rekognition, Transcribe and Nova
+        StartAt: EnableBedrockNova
+        States:
             EnableBedrockNova:
               Type: Pass
               Comment: Bedrock Nova is enabled by default in the region
@@ -551,70 +550,81 @@ Resources:
                         outputLocation: N/A
                         analysis: MediaConvert failed - no analysis available
                       End: true
-                - StartAt: DetectSegments
-                  States:
-                    DetectSegments:
-                      Type: Task
-                      Resource: arn:aws:states:::aws-sdk:rekognition:startSegmentDetection
-                      Parameters:
-                        Video:
-                          S3Object:
-                            Bucket.$: $.detail.bucket.name
-                            Name.$: $.detail.object.key
-                        SegmentTypes:
-                          - TECHNICAL_CUE
-                      ResultPath: $.rekognitionJob
-                      Next: WaitForSegmentDetection
-                    WaitForSegmentDetection:
-                      Type: Wait
-                      Seconds: 10
-                      Next: GetSegmentDetection
-                    GetSegmentDetection:
-                      Type: Task
-                      Resource: arn:aws:states:::aws-sdk:rekognition:getSegmentDetection
-                      Parameters:
-                        JobId.$: $.rekognitionJob.JobId
-                      ResultPath: $.segmentResults
-                      Next: CheckJobStatus
-                    CheckJobStatus:
-                      Type: Choice
-                      Choices:
-                        - Variable: $.segmentResults.JobStatus
-                          StringEquals: SUCCEEDED
-                          Next: JobCompleted
-                        - Variable: $.segmentResults.JobStatus
-                          StringEquals: FAILED
-                          Next: JobFailed
-                      Default: WaitForSegmentDetection
-                    JobCompleted:
-                      Type: Choice
-                      Choices:
-                        - Variable: $.segmentResults.Segments[0]
-                          IsPresent: true
-                          Next: BlackDetected
-                      Default: NoBlackDetected
-                    BlackDetected:
-                      Type: Pass
-                      Parameters:
-                        status: SUCCESS
-                        message: Rekognition segment detection completed
-                        blackDetected: true
-                      End: true
-                    NoBlackDetected:
-                      Type: Pass
-                      Parameters:
-                        status: SUCCESS
-                        message: Rekognition segment detection completed
-                        blackDetected: false
-                      End: true
-                    JobFailed:
-                      Type: Pass
-                      Parameters:
-                        status: FAILED
-                        message: Rekognition segment detection failed
-                        error: Segment detection failed
-                        blackDetected: false
-                      End: true
+                - !If
+                  - CreateBlueprint
+                  - StartAt: DetectSegments
+                    States:
+                      DetectSegments:
+                        Type: Task
+                        Resource: arn:aws:states:::aws-sdk:rekognition:startSegmentDetection
+                        Parameters:
+                          Video:
+                            S3Object:
+                              Bucket.$: $.detail.bucket.name
+                              Name.$: $.detail.object.key
+                          SegmentTypes:
+                            - TECHNICAL_CUE
+                        ResultPath: $.rekognitionJob
+                        Next: WaitForSegmentDetection
+                      WaitForSegmentDetection:
+                        Type: Wait
+                        Seconds: 10
+                        Next: GetSegmentDetection
+                      GetSegmentDetection:
+                        Type: Task
+                        Resource: arn:aws:states:::aws-sdk:rekognition:getSegmentDetection
+                        Parameters:
+                          JobId.$: $.rekognitionJob.JobId
+                        ResultPath: $.segmentResults
+                        Next: CheckJobStatus
+                      CheckJobStatus:
+                        Type: Choice
+                        Choices:
+                          - Variable: $.segmentResults.JobStatus
+                            StringEquals: SUCCEEDED
+                            Next: JobCompleted
+                          - Variable: $.segmentResults.JobStatus
+                            StringEquals: FAILED
+                            Next: JobFailed
+                        Default: WaitForSegmentDetection
+                      JobCompleted:
+                        Type: Choice
+                        Choices:
+                          - Variable: $.segmentResults.Segments[0]
+                            IsPresent: true
+                            Next: BlackDetected
+                        Default: NoBlackDetected
+                      BlackDetected:
+                        Type: Pass
+                        Parameters:
+                          status: SUCCESS
+                          message: Rekognition segment detection completed
+                          blackDetected: true
+                        End: true
+                      NoBlackDetected:
+                        Type: Pass
+                        Parameters:
+                          status: SUCCESS
+                          message: Rekognition segment detection completed
+                          blackDetected: false
+                        End: true
+                      JobFailed:
+                        Type: Pass
+                        Parameters:
+                          status: FAILED
+                          message: Rekognition segment detection failed
+                          error: Segment detection failed
+                          blackDetected: false
+                        End: true
+                  - StartAt: CustomWorkflow
+                    States:
+                      CustomWorkflow:
+                        Type: Pass
+                        Parameters:
+                          status: SUCCESS
+                          message: Custom workflow completed
+                          blackDetected: false
+                        End: true
                 - StartAt: StartTranscription
                   States:
                     StartTranscription:
@@ -708,21 +718,6 @@ Resources:
               Type: Pass
               Result:
                 message: File is not MP4, skipping conversion
-              End: true
-        - Comment: Minimal Step Functions template - customize as needed
-          StartAt: StartState
-          States:
-            StartState:
-              Type: Pass
-              Parameters:
-                message: Step Functions workflow started
-                input.$: $
-              Next: EndState
-            EndState:
-              Type: Pass
-              Parameters:
-                message: Step Functions workflow completed
-                result: Please customize this workflow
               End: true
       Tags:
         - Key: Name
