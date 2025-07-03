@@ -298,7 +298,7 @@ CloudFormation テンプレートは以下のリソースを作成します：
 - **CreateStepFunctionsBlueprint**: `false`
 - **NotificationEmail**: 通知を受け取るメールアドレス
 
-`CreateStepFunctionsBlueprint` を `false` に設定することで、Step Functions のワークフローが作成されず、必要な IAM ロール、S3 バケット、Lambda 関数のみが作成されます。
+`CreateStepFunctionsBlueprint` を `false` に設定することで、Step Functions の Rekognition ワークフローが作成されずプレースホルダーに置き換わります。
 
 | 米国西部 (オレゴン) | アジアパシフィック (東京) |
 | --- | --- |

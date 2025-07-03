@@ -289,7 +289,7 @@ Use the same CloudFormation template but change the following parameters for dep
 - **CreateStepFunctionsBlueprint**: `false`
 - **NotificationEmail**: Email address to receive notifications
 
-Setting `CreateStepFunctionsBlueprint` to `false` will not create the Step Functions workflow, only the necessary IAM roles, S3 bucket, and Lambda function.
+Setting `CreateStepFunctionsBlueprint` to `false` will replace the Step Functions Rekognition workflow with a placeholder.
 
 | US West (Oregon) | Asia Pacific (Tokyo) |
 | --- | --- |
