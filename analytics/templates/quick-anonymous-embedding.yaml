@@ -1,0 +1,301 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: aws-cloudformation-samples/analytics/quick-anonymous-embedding creates S3+CloudFront static site with Lambda for Amazon Quick anonymous embedding.
+
+Parameters:
+  DashboardId:
+    Type: String
+    Description: Amazon Quick Dashboard ID to embed [required]
+    AllowedPattern: .+
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - production
+      - test
+      - development
+  Namespace:
+    Type: String
+    Default: default
+    Description: Amazon Quick namespace for anonymous embedding
+  QuickAccountId:
+    Type: String
+    Description: AWS Account ID where Amazon Quick is configured [required]
+    AllowedPattern: \d{12}
+  QuickEmbeddingRoleArn:
+    Type: String
+    Description: IAM Role ARN in Amazon Quick account to assume for embedding [required]
+    AllowedPattern: arn:aws:iam::\d{12}:role/.+
+  QuickRegion:
+    Type: String
+    Default: us-east-1
+    Description: AWS Region where Amazon Quick dashboard is deployed
+  TagKey:
+    Type: String
+    Default: createdby
+    AllowedPattern: .+
+  TagValue:
+    Type: String
+    Default: aws-cloudformation-samples
+    AllowedPattern: .+
+
+Resources:
+  # IAM
+  IAMRoleForLambda:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Description: !Sub A role required for Lambda in ${AWS::StackName}
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: AssumeQuickEmbeddingRole
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: sts:AssumeRole
+                Resource: !Ref QuickEmbeddingRoleArn
+      RoleName: !Sub ${AWS::StackName}-Lambda-${AWS::Region}
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+
+  # Lambda
+  LambdaFunctionForEmbedUrl:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          import json
+          import os
+          import boto3
+
+          def handler(event, context):
+              method = event.get('requestContext', {}).get('http', {}).get('method', 'GET')
+              if method == 'OPTIONS':
+                  return {
+                      'statusCode': 200,
+                      'headers': cors_headers(),
+                      'body': ''
+                  }
+
+              try:
+                  quicksight_account_id = os.environ['QUICKSIGHT_ACCOUNT_ID']
+                  quicksight_region = os.environ['QUICKSIGHT_REGION']
+                  dashboard_id = os.environ['DASHBOARD_ID']
+                  namespace = os.environ['NAMESPACE']
+                  role_arn = os.environ['ROLE_ARN']
+
+                  sts = boto3.client('sts')
+                  assumed = sts.assume_role(
+                      RoleArn=role_arn,
+                      RoleSessionName='QuickSightEmbedSession'
+                  )
+                  creds = assumed['Credentials']
+
+                  qs = boto3.client(
+                      'quicksight',
+                      region_name=quicksight_region,
+                      aws_access_key_id=creds['AccessKeyId'],
+                      aws_secret_access_key=creds['SecretAccessKey'],
+                      aws_session_token=creds['SessionToken']
+                  )
+                  resp = qs.generate_embed_url_for_anonymous_user(
+                      AwsAccountId=quicksight_account_id,
+                      Namespace=namespace,
+                      ExperienceConfiguration={
+                          'Dashboard': {
+                              'InitialDashboardId': dashboard_id
+                          }
+                      },
+                      AuthorizedResourceArns=[
+                          f'arn:aws:quicksight:{quicksight_region}:{quicksight_account_id}:dashboard/{dashboard_id}'
+                      ]
+                  )
+
+                  return {
+                      'statusCode': 200,
+                      'headers': {**cors_headers(), 'Content-Type': 'application/json'},
+                      'body': json.dumps({'embedUrl': resp['EmbedUrl']})
+                  }
+
+              except Exception as e:
+                  print(f'Error: {e}')
+                  return {
+                      'statusCode': 500,
+                      'headers': {**cors_headers(), 'Content-Type': 'application/json'},
+                      'body': json.dumps({'error': str(e)})
+                  }
+
+          def cors_headers():
+              return {
+                  'Access-Control-Allow-Origin': '*',
+                  'Access-Control-Allow-Methods': 'GET,OPTIONS',
+                  'Access-Control-Allow-Headers': 'Content-Type'
+              }
+      Environment:
+        Variables:
+          DASHBOARD_ID: !Ref DashboardId
+          NAMESPACE: !Ref Namespace
+          QUICKSIGHT_ACCOUNT_ID: !Ref QuickAccountId
+          QUICKSIGHT_REGION: !Ref QuickRegion
+          ROLE_ARN: !Ref QuickEmbeddingRoleArn
+      FunctionName: !Sub ${AWS::StackName}-embed-url
+      Handler: index.handler
+      Role: !GetAtt IAMRoleForLambda.Arn
+      Runtime: python3.13
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+      Timeout: 30
+
+  LambdaUrlForEmbedUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      AuthType: AWS_IAM
+      Cors:
+        AllowMethods:
+          - GET
+        AllowOrigins:
+          - '*'
+      TargetFunctionArn: !Ref LambdaFunctionForEmbedUrl
+
+  LambdaPermissionForCloudFront:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunctionUrl
+      FunctionName: !Ref LambdaFunctionForEmbedUrl
+      Principal: cloudfront.amazonaws.com
+      SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistributionForWebsite}
+
+  # S3
+  S3BucketForWebsite:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub quick-embedding-${AWS::AccountId}-${AWS::Region}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+
+  S3BucketPolicyForWebsite:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3BucketForWebsite
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontOAC
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub ${S3BucketForWebsite.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistributionForWebsite}
+
+  # CloudFront
+  CloudFrontOACForS3:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub ${AWS::StackName}-s3-oac
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontOACForLambda:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Description: OAC for Lambda Function URL
+        Name: !Sub ${AWS::StackName}-lambda-oac
+        OriginAccessControlOriginType: lambda
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontDistributionForWebsite:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        CacheBehaviors:
+          - AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            CachedMethods:
+              - GET
+              - HEAD
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
+            PathPattern: /api/embed-url
+            TargetOriginId: LambdaOrigin
+            ViewerProtocolPolicy: redirect-to-https
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          CachedMethods:
+            - GET
+            - HEAD
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+        DefaultRootObject: index.html
+        Enabled: true
+        HttpVersion: http2and3
+        Origins:
+          - DomainName: !GetAtt S3BucketForWebsite.RegionalDomainName
+            Id: S3Origin
+            OriginAccessControlId: !GetAtt CloudFrontOACForS3.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+          - CustomOriginConfig:
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols:
+                - TLSv1.2
+            DomainName: !Select
+              - 2
+              - !Split
+                - /
+                - !GetAtt LambdaUrlForEmbedUrl.FunctionUrl
+            Id: LambdaOrigin
+            OriginAccessControlId: !GetAtt CloudFrontOACForLambda.Id
+        PriceClass: PriceClass_All
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+
+Outputs:
+  CloudFrontDistributionId:
+    Description: CloudFront Distribution ID
+    Value: !Ref CloudFrontDistributionForWebsite
+  S3BucketName:
+    Description: S3 bucket name for uploading index.html
+    Value: !Ref S3BucketForWebsite
+  CloudFrontDomainName:
+    Description: CloudFront domain name to register as allowed domain in Amazon Quick
+    Value: !GetAtt CloudFrontDistributionForWebsite.DomainName
+  LambdaFunctionUrl:
+    Description: Lambda Function URL for testing
+    Value: !GetAtt LambdaUrlForEmbedUrl.FunctionUrl
