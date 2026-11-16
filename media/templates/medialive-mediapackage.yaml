@@ -29,6 +29,16 @@ Metadata:
           - VideoBitrate
           - Width
           - WhitelistRules
+      - Label:
+          default: 'Elemental Inference Configuration'
+        Parameters:
+          - EventClipping
+          - SmartCrop
+          - SmartCropHeight
+          - SmartCropWidth
+          - SmartSubtitles
+          - SmartSubtitlesLanguage
+          - SmartSubtitlesProfanityFilter
       - Label: 
           default: 'MediaPackage Configuration'
         Parameters: 
@@ -81,6 +91,13 @@ Parameters:
     Type: String
     Default: ''
     Description: The unique ID for the Elemental Link device [conditional]
+  EventClipping:
+    Type: String
+    Default: DISABLED
+    AllowedValues:
+      - ENABLED
+      - DISABLED
+    Description: Enable or disable the event clipping of Elemental Inference [required]
   FramerateDenominator:
     Type: Number
     Default: 1001
@@ -178,6 +195,47 @@ Parameters:
     Type: String
     Default: ''
     Description: The rtmp stream name a stream sends to
+  SmartCrop:
+    Type: String
+    Default: DISABLED
+    AllowedValues:
+      - ENABLED
+      - DISABLED
+    Description: Enable or disable the smart crop of Elemental Inference [required]
+  SmartCropHeight:
+    Type: Number
+    Default: 960
+    Description: Smart crop output video height, in pixels [required]
+  SmartCropWidth:
+    Type: Number
+    Default: 540
+    Description: Smart crop output video width, in pixels [required]
+  SmartSubtitles:
+    Type: String
+    Default: DISABLED
+    AllowedValues:
+      - ENABLED
+      - DISABLED
+    Description: Enable or disable the smart subtitles of Elemental Inference [required]
+  SmartSubtitlesLanguage:
+    Type: String
+    Default: eng
+    AllowedValues:
+      - eng
+      - spa
+      - fra
+      - deu
+      - ita
+      - por
+    Description: The language of the source audio [required]
+  SmartSubtitlesProfanityFilter:
+    Type: String
+    Default: DISABLED
+    AllowedValues:
+      - DISABLED
+      - CENSOR
+      - DROP
+    Description: How profanity in the subtitles is handled [required]
   SlackChannelId:
     Type: String
     Default: ''
@@ -233,6 +291,7 @@ Parameters:
     AllowedPattern: .+
 
 Conditions:
+  CreateElementalInference: !Or [ !Equals [ !Ref EventClipping, ENABLED ], !Equals [ !Ref SmartCrop, ENABLED ], !Equals [ !Ref SmartSubtitles, ENABLED ] ]
   CreateSlack: !And [ !Not [ !Equals [ !Ref SlackChannelId, '' ] ], !Not [ !Equals [ !Ref SlackWorkspaceId, '' ] ] ]
   Development: !Equals [ !Ref Environment, development]
   RecOnMediaLive: !And [ !Equals [ !Ref LiveToVod, REC_ON_MEDIALIVE ], !Not [ !Equals [ !Ref VodSourceBucket, '' ] ] ]
@@ -242,6 +301,30 @@ Conditions:
 
 Resources:
   # Nested Stack
+  ElementalInference:
+    Condition: CreateElementalInference
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      NotificationARNs:
+        - !GetAtt SNSForDeployment.Outputs.SNSTopicArn
+      Parameters:
+        EventClipping: !Ref EventClipping
+        SmartCrop: !Ref SmartCrop
+        SmartSubtitles: !Ref SmartSubtitles
+        SmartSubtitlesLanguage: !Ref SmartSubtitlesLanguage
+        SmartSubtitlesProfanityFilter: !Ref SmartSubtitlesProfanityFilter
+        LogicalName: !Ref AWS::StackName
+        Environment: !Ref Environment
+        TagValue: !Ref TagValue
+      TemplateURL: !If
+        - Development
+        - https://eijikominami-test.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/elementalinference.yaml
+        - https://eijikominami.s3-ap-northeast-1.amazonaws.com/aws-cloudformation-templates/media/elementalinference.yaml
+      Tags:
+        - Key: environment
+          Value: !Ref Environment
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
   MediaLive:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -264,6 +347,10 @@ Resources:
         H264Profile: !Ref H264Profile
         H264Level: !Ref H264Level
         Height: !Ref Height
+        InferenceFeedArn: !If
+          - CreateElementalInference
+          - !GetAtt ElementalInference.Outputs.FeedArn
+          - ''
         InputType: !Ref InputType
         InputStreamKey: !Ref StreamKey
         InputWhitelistRules: !Ref WhitelistRules
@@ -274,6 +361,15 @@ Resources:
         OutputRtmpStreamKey1: !Ref RtmpStreamKey1
         OutputRtmpRtpUrl2: !Ref RtmpUrl2
         OutputRtmpStreamKey2: !Ref RtmpStreamKey2
+        SmartCrop: !Ref SmartCrop
+        SmartCropHeight: !Ref SmartCropHeight
+        SmartCropWidth: !Ref SmartCropWidth
+        SmartSubtitles: !Ref SmartSubtitles
+        SmartSubtitlesFeedOutput: !If
+          - CreateElementalInference
+          - !GetAtt ElementalInference.Outputs.SmartSubtitlesOutputName
+          - !Sub subtitling-${SmartSubtitlesLanguage}
+        SmartSubtitlesLanguage: !Ref SmartSubtitlesLanguage
         VideoBitrate: !Ref VideoBitrate
         VodSourceBucket: !If
           - PlayOnMediaLive
@@ -400,3 +496,7 @@ Outputs:
   RtmpSecondary2:
     Description: The RTMP secondary address 2
     Value: !GetAtt MediaLive.Outputs.RtmpSecondary2
+  ElementalInferenceFeedArn:
+    Condition: CreateElementalInference
+    Description: The Elemental Inference feed ARN
+    Value: !GetAtt ElementalInference.Outputs.FeedArn
